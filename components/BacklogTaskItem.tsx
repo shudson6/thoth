@@ -7,9 +7,10 @@ type Props = {
   task: Task;
   onToggle: (id: string) => void;
   onSchedule: (id: string, start: string, end: string) => void;
+  onOpenDetail: (id: string) => void;
 };
 
-export default function BacklogTaskItem({ task, onToggle, onSchedule }: Props) {
+export default function BacklogTaskItem({ task, onToggle, onSchedule, onOpenDetail }: Props) {
   const [showPicker, setShowPicker] = useState(false);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
@@ -23,7 +24,10 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule }: Props) {
           onChange={() => onToggle(task.id)}
           className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 accent-blue-500 shrink-0 cursor-pointer"
         />
-        <div className="flex-1 min-w-0">
+        <div
+          className="flex-1 min-w-0 cursor-pointer hover:opacity-75 transition-opacity"
+          onClick={() => onOpenDetail(task.id)}
+        >
           <span
             className={`text-sm ${
               task.completed

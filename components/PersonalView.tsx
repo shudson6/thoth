@@ -33,10 +33,19 @@ export default function PersonalView() {
     );
   }
 
+  function updateTask(
+    id: string,
+    updates: Partial<Pick<Task, "title" | "description" | "points">>
+  ) {
+    setTasks((prev) =>
+      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
+    );
+  }
+
   return (
     <div className="flex h-screen bg-white dark:bg-zinc-950">
       <SchedulePane tasks={tasks} />
-      <BacklogPane tasks={tasks} onAddTask={addTask} onToggleTask={toggleTask} onScheduleTask={scheduleTask} />
+      <BacklogPane tasks={tasks} onAddTask={addTask} onToggleTask={toggleTask} onScheduleTask={scheduleTask} onUpdateTask={updateTask} />
     </div>
   );
 }

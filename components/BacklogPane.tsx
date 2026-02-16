@@ -4,16 +4,26 @@ import { useState } from "react";
 import { Task } from "@/types/task";
 import BacklogTaskItem from "./BacklogTaskItem";
 import AddTaskForm from "./AddTaskForm";
+import TaskDetailModal from "./TaskDetailModal";
 
 type Props = {
   tasks: Task[];
   onAddTask: (title: string, points?: number, description?: string) => void;
   onToggleTask: (id: string) => void;
   onScheduleTask: (id: string, start: string, end: string) => void;
+  onUpdateTask: (
+    id: string,
+    updates: Partial<Pick<Task, "title" | "description" | "points">>
+  ) => void;
 };
 
-export default function BacklogPane({ tasks, onAddTask, onToggleTask, onScheduleTask }: Props) {
+export default function BacklogPane({ tasks, onAddTask, onToggleTask, onScheduleTask, onUpdateTask }: Props) {
   const [showForm, setShowForm] = useState(false);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const selectedTask = selectedTaskId
+    ? tasks.find((t) => t.id === selectedTaskId) ?? null
+    : null;
 
   const backlogTasks = tasks.filter((t) => !t.scheduledStart);
   const incomplete = backlogTasks.filter((t) => !t.completed);
@@ -54,7 +64,7 @@ export default function BacklogPane({ tasks, onAddTask, onToggleTask, onSchedule
         )}
 
         {incomplete.map((task) => (
-          <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} />
+          <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onOpenDetail={setSelectedTaskId} />
         ))}
 
         {completed.length > 0 && (
@@ -63,11 +73,19 @@ export default function BacklogPane({ tasks, onAddTask, onToggleTask, onSchedule
               Completed ({completed.length})
             </div>
             {completed.map((task) => (
-              <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} />
+              <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onOpenDetail={setSelectedTaskId} />
             ))}
           </div>
         )}
       </div>
+
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={() => setSelectedTaskId(null)}
+          onUpdate={onUpdateTask}
+        />
+      )}
     </div>
   );
 }
