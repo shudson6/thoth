@@ -44,7 +44,7 @@ export default function PersonalView() {
 
   return (
     <div className="flex h-screen bg-white dark:bg-zinc-950">
-      <SchedulePane tasks={tasks} />
+      <SchedulePane tasks={tasks} onUpdateTask={updateTask} />
       <BacklogPane tasks={tasks} onAddTask={addTask} onToggleTask={toggleTask} onScheduleTask={scheduleTask} onUpdateTask={updateTask} />
     </div>
   );

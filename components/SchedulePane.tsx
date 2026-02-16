@@ -3,9 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { Task } from "@/types/task";
 import ScheduleTaskBlock from "./ScheduleTaskBlock";
+import TaskDetailModal from "./TaskDetailModal";
 
 type Props = {
   tasks: Task[];
+  onUpdateTask: (
+    id: string,
+    updates: Partial<Pick<Task, "title" | "description" | "points">>
+  ) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -17,9 +22,14 @@ function formatHour(h: number): string {
   return `${display} ${suffix}`;
 }
 
-export default function SchedulePane({ tasks }: Props) {
+export default function SchedulePane({ tasks, onUpdateTask }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = useState(0);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+
+  const selectedTask = selectedTaskId
+    ? tasks.find((t) => t.id === selectedTaskId) ?? null
+    : null;
 
   useEffect(() => {
     function updateRowHeight() {
@@ -86,9 +96,16 @@ export default function SchedulePane({ tasks }: Props) {
 
           {/* Scheduled task blocks */}
           {scheduledTasks.map((task) => (
-            <ScheduleTaskBlock key={task.id} task={task} rowHeight={rowHeight} />
+            <ScheduleTaskBlock key={task.id} task={task} rowHeight={rowHeight} onOpenDetail={setSelectedTaskId} />
           ))}
         </div>
+      )}
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          onClose={() => setSelectedTaskId(null)}
+          onUpdate={onUpdateTask}
+        />
       )}
     </div>
   );
