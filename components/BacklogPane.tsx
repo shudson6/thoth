@@ -30,7 +30,7 @@ export default function BacklogPane({ tasks, onAddTask, onToggleTask, onSchedule
   const completed = backlogTasks.filter((t) => t.completed);
 
   return (
-    <div className="w-[35%] border-l border-zinc-200 dark:border-zinc-800 flex flex-col h-full">
+    <div className="md:border-l border-zinc-200 dark:border-zinc-800 flex flex-col h-full">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-200 dark:border-zinc-800">
         <h2 className="text-sm font-semibold text-zinc-700 dark:text-zinc-300">

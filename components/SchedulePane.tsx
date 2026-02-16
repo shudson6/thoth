@@ -34,7 +34,8 @@ export default function SchedulePane({ tasks, onUpdateTask }: Props) {
   useEffect(() => {
     function updateRowHeight() {
       if (containerRef.current) {
-        setRowHeight(containerRef.current.clientHeight / VISIBLE_HOURS);
+        const h = containerRef.current.clientHeight / VISIBLE_HOURS;
+        if (h > 0) setRowHeight(h);
       }
     }
     updateRowHeight();
