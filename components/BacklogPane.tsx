@@ -7,7 +7,7 @@ import AddTaskForm from "./AddTaskForm";
 
 type Props = {
   tasks: Task[];
-  onAddTask: (title: string, points?: number) => void;
+  onAddTask: (title: string, points?: number, description?: string) => void;
   onToggleTask: (id: string) => void;
   onScheduleTask: (id: string, start: string, end: string) => void;
 };
@@ -37,8 +37,8 @@ export default function BacklogPane({ tasks, onAddTask, onToggleTask, onSchedule
       {/* Add task form */}
       {showForm && (
         <AddTaskForm
-          onAdd={(title, points) => {
-            onAddTask(title, points);
+          onAdd={(title, points, description) => {
+            onAddTask(title, points, description);
             setShowForm(false);
           }}
           onCancel={() => setShowForm(false)}

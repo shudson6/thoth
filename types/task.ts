@@ -1,6 +1,7 @@
 export type Task = {
   id: string;
   title: string;
+  description?: string;
   points?: number;
   completed: boolean;
   scheduledStart?: string; // "HH:MM" e.g. "09:00"

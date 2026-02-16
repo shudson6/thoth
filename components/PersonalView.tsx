@@ -8,10 +8,11 @@ import BacklogPane from "./BacklogPane";
 export default function PersonalView() {
   const [tasks, setTasks] = useState<Task[]>([]);
 
-  function addTask(title: string, points?: number) {
+  function addTask(title: string, points?: number, description?: string) {
     const task: Task = {
       id: Date.now().toString(),
       title,
+      description,
       points,
       completed: false,
     };

@@ -23,15 +23,22 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule }: Props) {
           onChange={() => onToggle(task.id)}
           className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 accent-blue-500 shrink-0 cursor-pointer"
         />
-        <span
-          className={`flex-1 text-sm ${
-            task.completed
-              ? "line-through text-zinc-400 dark:text-zinc-600"
-              : "text-zinc-800 dark:text-zinc-200"
-          }`}
-        >
-          {task.title}
-        </span>
+        <div className="flex-1 min-w-0">
+          <span
+            className={`text-sm ${
+              task.completed
+                ? "line-through text-zinc-400 dark:text-zinc-600"
+                : "text-zinc-800 dark:text-zinc-200"
+            }`}
+          >
+            {task.title}
+          </span>
+          {task.description && (
+            <p className="text-xs text-zinc-400 dark:text-zinc-500 truncate mt-0.5">
+              {task.description}
+            </p>
+          )}
+        </div>
         {task.points != null && (
           <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
             {task.points} pts
