@@ -16,6 +16,7 @@ type Props = {
   onChangeDate: (date: string) => void;
   onScheduleTask: (id: string, start: string, end: string) => void;
   onScheduleTaskAllDay: (id: string) => void;
+  onDescheduleTask: (id: string) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -43,7 +44,7 @@ function snapToGrid(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
-export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay }: Props) {
+export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -212,7 +213,14 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
           <button
             key={task.id}
             onClick={() => setSelectedTaskId(task.id)}
-            className="rounded-full bg-blue-100 dark:bg-blue-500/20 px-3 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+            draggable
+            onDragStart={(e) => {
+              e.dataTransfer.setData("text/plain", task.id);
+              e.dataTransfer.setData("application/x-source", "allday");
+              e.dataTransfer.setData("application/x-estimate", String(task.estimatedMinutes ?? 60));
+              e.dataTransfer.effectAllowed = "move";
+            }}
+            className="rounded-full bg-blue-100 dark:bg-blue-500/20 px-3 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors cursor-grab active:cursor-grabbing"
           >
             {task.title}
           </button>
@@ -275,6 +283,7 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
             task={selectedTask}
             onClose={() => setSelectedTaskId(null)}
             onUpdate={onUpdateTask}
+            onDeschedule={onDescheduleTask}
           />
         )}
       </div>
