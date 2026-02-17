@@ -10,5 +10,12 @@ Features:
   - Family View
     + Schedule Pane Per Person
       - Drag-n-drop between people to reassign/reschedule
+      - Drag-n-drop from Backlog to Schedule to assign and schedule
   - Gamified
     + Tasks can have point values
+    + Display point total & goal
+    + Compete on Family View
+  - Tasks:
+    + Have Title, Description, etc
+    + Can be Scheduled and Have RRULEs
+    + Can have Notes attached
