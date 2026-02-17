@@ -24,6 +24,17 @@ function formatHour(h: number): string {
   return `${display} ${suffix}`;
 }
 
+function shiftDate(dateStr: string, days: number): string {
+  const d = new Date(dateStr + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
+}
+
+function formatDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
 export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChangeDate }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = useState(0);
@@ -75,45 +86,83 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
   const timeIndicatorTop = rowHeight > 0 ? (timeOffset / 60) * rowHeight : 0;
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto relative">
-      {rowHeight > 0 && (
-        <div className="relative" style={{ height: totalHeight }}>
-          {/* Hour rows */}
-          {HOURS.map((h) => (
-            <div
-              key={h}
-              className="absolute left-0 right-0 border-b border-zinc-200 dark:border-zinc-800 flex items-start"
-              style={{ top: h * rowHeight, height: rowHeight }}
-            >
-              <span className="w-16 shrink-0 text-xs text-zinc-400 pt-1 pl-3 select-none">
-                {formatHour(h)}
-              </span>
-            </div>
-          ))}
-
-          {/* Current time indicator */}
-          {isToday && (
-            <div
-              className="absolute left-14 right-0 border-t-2 border-red-500 z-20 pointer-events-none"
-              style={{ top: timeIndicatorTop }}
-            >
-              <div className="w-2.5 h-2.5 rounded-full bg-red-500 -mt-[6px] -ml-[5px]" />
-            </div>
-          )}
-
-          {/* Scheduled task blocks */}
-          {scheduledTasks.map((task) => (
-            <ScheduleTaskBlock key={task.id} task={task} rowHeight={rowHeight} onOpenDetail={setSelectedTaskId} />
-          ))}
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Date navigation header */}
+      <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onChangeDate(shiftDate(selectedDate, -1))}
+            className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+            aria-label="Previous day"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M11.78 5.22a.75.75 0 0 1 0 1.06L8.06 10l3.72 3.72a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clipRule="evenodd" />
+            </svg>
+          </button>
+          <span className="text-sm font-medium text-zinc-700 dark:text-zinc-200 min-w-[120px] text-center">
+            {formatDate(selectedDate)}
+          </span>
+          <button
+            onClick={() => onChangeDate(shiftDate(selectedDate, 1))}
+            className="p-1.5 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 text-zinc-500 dark:text-zinc-400"
+            aria-label="Next day"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
+              <path fillRule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 1 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clipRule="evenodd" />
+            </svg>
+          </button>
         </div>
-      )}
-      {selectedTask && (
-        <TaskDetailModal
-          task={selectedTask}
-          onClose={() => setSelectedTaskId(null)}
-          onUpdate={onUpdateTask}
-        />
-      )}
+        {!isToday && (
+          <button
+            onClick={() => onChangeDate(new Date().toISOString().slice(0, 10))}
+            className="text-xs font-medium text-blue-500 hover:text-blue-600 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-500/10"
+          >
+            Today
+          </button>
+        )}
+      </div>
+
+      {/* Scrollable time grid */}
+      <div ref={containerRef} className="flex-1 overflow-y-auto relative">
+        {rowHeight > 0 && (
+          <div className="relative" style={{ height: totalHeight }}>
+            {/* Hour rows */}
+            {HOURS.map((h) => (
+              <div
+                key={h}
+                className="absolute left-0 right-0 border-b border-zinc-200 dark:border-zinc-800 flex items-start"
+                style={{ top: h * rowHeight, height: rowHeight }}
+              >
+                <span className="w-16 shrink-0 text-xs text-zinc-400 pt-1 pl-3 select-none">
+                  {formatHour(h)}
+                </span>
+              </div>
+            ))}
+
+            {/* Current time indicator */}
+            {isToday && (
+              <div
+                className="absolute left-14 right-0 border-t-2 border-red-500 z-20 pointer-events-none"
+                style={{ top: timeIndicatorTop }}
+              >
+                <div className="w-2.5 h-2.5 rounded-full bg-red-500 -mt-[6px] -ml-[5px]" />
+              </div>
+            )}
+
+            {/* Scheduled task blocks */}
+            {scheduledTasks.map((task) => (
+              <ScheduleTaskBlock key={task.id} task={task} rowHeight={rowHeight} onOpenDetail={setSelectedTaskId} />
+            ))}
+          </div>
+        )}
+        {selectedTask && (
+          <TaskDetailModal
+            task={selectedTask}
+            onClose={() => setSelectedTaskId(null)}
+            onUpdate={onUpdateTask}
+          />
+        )}
+      </div>
     </div>
   );
 }
