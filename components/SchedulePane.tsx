@@ -4,19 +4,23 @@ import { useEffect, useRef, useState } from "react";
 import { Task } from "@/types/task";
 import ScheduleTaskBlock from "./ScheduleTaskBlock";
 import TaskDetailModal from "./TaskDetailModal";
+import { timeToMinutes, minutesToTime } from "@/lib/time";
 
 type Props = {
   tasks: Task[];
   onUpdateTask: (
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">>
   ) => void;
   selectedDate: string;
   onChangeDate: (date: string) => void;
+  onScheduleTask: (id: string, start: string, end: string) => void;
+  onScheduleTaskAllDay: (id: string) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const VISIBLE_HOURS = 16;
+const SNAP_MINUTES = 15;
 
 function formatHour(h: number): string {
   const suffix = h >= 12 ? "PM" : "AM";
@@ -35,10 +39,16 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
-export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChangeDate }: Props) {
+function snapToGrid(minutes: number): number {
+  return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
+}
+
+export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [dragOverTime, setDragOverTime] = useState<number | null>(null);
+  const [allDayDragOver, setAllDayDragOver] = useState(false);
 
   const selectedTask = selectedTaskId
     ? tasks.find((t) => t.id === selectedTaskId) ?? null
@@ -67,6 +77,10 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
     (t) => t.scheduledStart && t.scheduledEnd && !t.completed && t.scheduledDate === selectedDate
   );
 
+  const allDayTasks = tasks.filter(
+    (t) => t.scheduledDate === selectedDate && !t.scheduledStart && !t.completed
+  );
+
   // Current time indicator (only shown when viewing today)
   const isToday = selectedDate === new Date().toISOString().slice(0, 10);
   const now = new Date();
@@ -84,6 +98,63 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
 
   const totalHeight = rowHeight * 24;
   const timeIndicatorTop = rowHeight > 0 ? (timeOffset / 60) * rowHeight : 0;
+
+  // --- DnD helpers for time grid ---
+  function getMinutesFromY(e: React.DragEvent): number {
+    if (!containerRef.current || rowHeight <= 0) return 0;
+    const rect = containerRef.current.getBoundingClientRect();
+    const relY = e.clientY - rect.top + containerRef.current.scrollTop;
+    const minutes = (relY / totalHeight) * 24 * 60;
+    return snapToGrid(Math.max(0, Math.min(minutes, 24 * 60 - SNAP_MINUTES)));
+  }
+
+  function handleGridDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverTime(getMinutesFromY(e));
+  }
+
+  function handleGridDragLeave() {
+    setDragOverTime(null);
+  }
+
+  function handleGridDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData("text/plain");
+    if (!taskId) return;
+
+    const estimateStr = e.dataTransfer.getData("application/x-estimate");
+    const estimate = estimateStr ? Number(estimateStr) : 60;
+
+    const startMin = getMinutesFromY(e);
+    const endMin = Math.min(startMin + estimate, 24 * 60);
+
+    onScheduleTask(taskId, minutesToTime(startMin), minutesToTime(endMin));
+    setDragOverTime(null);
+  }
+
+  // --- DnD helpers for all-day strip ---
+  function handleAllDayDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setAllDayDragOver(true);
+  }
+
+  function handleAllDayDragLeave() {
+    setAllDayDragOver(false);
+  }
+
+  function handleAllDayDrop(e: React.DragEvent) {
+    e.preventDefault();
+    const taskId = e.dataTransfer.getData("text/plain");
+    if (!taskId) return;
+    onScheduleTaskAllDay(taskId);
+    setAllDayDragOver(false);
+  }
+
+  const dragPreviewTop = dragOverTime !== null && rowHeight > 0
+    ? (dragOverTime / 60) * rowHeight
+    : null;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -122,8 +193,40 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
         )}
       </div>
 
+      {/* All-day strip */}
+      <div
+        className={`shrink-0 border-b px-4 py-2 min-h-[40px] flex items-center gap-2 flex-wrap transition-colors ${
+          allDayDragOver
+            ? "border-blue-400 bg-blue-50 dark:bg-blue-500/10 border-dashed"
+            : "border-zinc-200 dark:border-zinc-800"
+        }`}
+        onDragOver={handleAllDayDragOver}
+        onDragLeave={handleAllDayDragLeave}
+        onDrop={handleAllDayDrop}
+      >
+        <span className="text-xs text-zinc-400 dark:text-zinc-500 shrink-0 select-none">All day</span>
+        {allDayTasks.length === 0 && !allDayDragOver && (
+          <span className="text-xs text-zinc-300 dark:text-zinc-600 select-none">Drop tasks here</span>
+        )}
+        {allDayTasks.map((task) => (
+          <button
+            key={task.id}
+            onClick={() => setSelectedTaskId(task.id)}
+            className="rounded-full bg-blue-100 dark:bg-blue-500/20 px-3 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors"
+          >
+            {task.title}
+          </button>
+        ))}
+      </div>
+
       {/* Scrollable time grid */}
-      <div ref={containerRef} className="flex-1 overflow-y-auto relative">
+      <div
+        ref={containerRef}
+        className="flex-1 overflow-y-auto relative"
+        onDragOver={handleGridDragOver}
+        onDragLeave={handleGridDragLeave}
+        onDrop={handleGridDrop}
+      >
         {rowHeight > 0 && (
           <div className="relative" style={{ height: totalHeight }}>
             {/* Hour rows */}
@@ -146,6 +249,18 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
                 style={{ top: timeIndicatorTop }}
               >
                 <div className="w-2.5 h-2.5 rounded-full bg-red-500 -mt-[6px] -ml-[5px]" />
+              </div>
+            )}
+
+            {/* Drop preview */}
+            {dragPreviewTop !== null && (
+              <div
+                className="absolute left-16 right-2 border-t-2 border-dashed border-blue-400 z-30 pointer-events-none"
+                style={{ top: dragPreviewTop }}
+              >
+                <span className="absolute -top-4 left-0 text-[10px] font-medium text-blue-500 bg-white dark:bg-zinc-950 px-1 rounded">
+                  {minutesToTime(dragOverTime!)}
+                </span>
               </div>
             )}
 

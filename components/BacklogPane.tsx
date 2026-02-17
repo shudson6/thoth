@@ -8,16 +8,17 @@ import TaskDetailModal from "./TaskDetailModal";
 
 type Props = {
   tasks: Task[];
-  onAddTask: (title: string, points?: number, description?: string) => void;
+  onAddTask: (title: string, points?: number, description?: string, estimatedMinutes?: number) => void;
   onToggleTask: (id: string) => void;
   onScheduleTask: (id: string, start: string, end: string) => void;
+  onScheduleTaskAllDay: (id: string) => void;
   onUpdateTask: (
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">>
   ) => void;
 };
 
-export default function BacklogPane({ tasks, onAddTask, onToggleTask, onScheduleTask, onUpdateTask }: Props) {
+export default function BacklogPane({ tasks, onAddTask, onToggleTask, onScheduleTask, onScheduleTaskAllDay, onUpdateTask }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
@@ -25,7 +26,7 @@ export default function BacklogPane({ tasks, onAddTask, onToggleTask, onSchedule
     ? tasks.find((t) => t.id === selectedTaskId) ?? null
     : null;
 
-  const backlogTasks = tasks.filter((t) => !t.scheduledStart);
+  const backlogTasks = tasks.filter((t) => !t.scheduledDate);
   const incomplete = backlogTasks.filter((t) => !t.completed);
   const completed = backlogTasks.filter((t) => t.completed);
 
@@ -47,8 +48,8 @@ export default function BacklogPane({ tasks, onAddTask, onToggleTask, onSchedule
       {/* Add task form */}
       {showForm && (
         <AddTaskForm
-          onAdd={(title, points, description) => {
-            onAddTask(title, points, description);
+          onAdd={(title, points, description, estimatedMinutes) => {
+            onAddTask(title, points, description, estimatedMinutes);
             setShowForm(false);
           }}
           onCancel={() => setShowForm(false)}

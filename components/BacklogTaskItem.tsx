@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Task } from "@/types/task";
+import { formatEstimate } from "@/lib/time";
 
 type Props = {
   task: Task;
@@ -15,9 +16,21 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onOpenDeta
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
 
+  function handleDragStart(e: React.DragEvent) {
+    e.dataTransfer.setData("text/plain", task.id);
+    if (task.estimatedMinutes) {
+      e.dataTransfer.setData("application/x-estimate", String(task.estimatedMinutes));
+    }
+    e.dataTransfer.effectAllowed = "move";
+  }
+
   return (
     <div className="border-b border-zinc-100 dark:border-zinc-800 last:border-b-0">
-      <div className="flex items-center gap-3 px-4 py-2.5">
+      <div
+        className={`flex items-center gap-3 px-4 py-2.5 ${!task.completed ? "cursor-grab active:cursor-grabbing" : ""}`}
+        draggable={!task.completed}
+        onDragStart={handleDragStart}
+      >
         <input
           type="checkbox"
           checked={task.completed}
@@ -43,6 +56,11 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onOpenDeta
             </p>
           )}
         </div>
+        {task.estimatedMinutes != null && (
+          <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
+            {formatEstimate(task.estimatedMinutes)}
+          </span>
+        )}
         {task.points != null && (
           <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
             {task.points} pts

@@ -8,6 +8,7 @@ import {
   addTask as addTaskAction,
   toggleTask as toggleTaskAction,
   scheduleTask as scheduleTaskAction,
+  scheduleTaskAllDay as scheduleTaskAllDayAction,
   updateTask as updateTaskAction,
 } from "@/app/actions";
 
@@ -15,7 +16,8 @@ type Action =
   | { type: "add"; task: Task }
   | { type: "toggle"; id: string }
   | { type: "schedule"; id: string; start: string; end: string; date: string }
-  | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points">> };
+  | { type: "scheduleAllDay"; id: string; date: string }
+  | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">> };
 
 function tasksReducer(tasks: Task[], action: Action): Task[] {
   switch (action.type) {
@@ -31,6 +33,12 @@ function tasksReducer(tasks: Task[], action: Action): Task[] {
           ? { ...t, scheduledDate: action.date, scheduledStart: action.start, scheduledEnd: action.end }
           : t
       );
+    case "scheduleAllDay":
+      return tasks.map((t) =>
+        t.id === action.id
+          ? { ...t, scheduledDate: action.date, scheduledStart: undefined, scheduledEnd: undefined }
+          : t
+      );
     case "update":
       return tasks.map((t) =>
         t.id === action.id ? { ...t, ...action.updates } : t
@@ -44,12 +52,12 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
 
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  function addTask(title: string, points?: number, description?: string) {
+  function addTask(title: string, points?: number, description?: string, estimatedMinutes?: number) {
     const tempId = Math.random().toString(36).slice(2);
-    const task: Task = { id: tempId, title, description, points, completed: false };
+    const task: Task = { id: tempId, title, description, points, estimatedMinutes, completed: false };
     startTransition(async () => {
       dispatchOptimistic({ type: "add", task });
-      await addTaskAction(title, points, description);
+      await addTaskAction(title, points, description, estimatedMinutes);
     });
   }
 
@@ -67,9 +75,16 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
     });
   }
 
+  function scheduleTaskAllDay(id: string) {
+    startTransition(async () => {
+      dispatchOptimistic({ type: "scheduleAllDay", id, date: selectedDate });
+      await scheduleTaskAllDayAction(id, selectedDate);
+    });
+  }
+
   function updateTask(
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">>
   ) {
     startTransition(async () => {
       dispatchOptimistic({ type: "update", id, updates });
@@ -106,10 +121,24 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
       </div>
 
       <div className={`flex-1 min-h-0 flex flex-col ${activeTab === "schedule" ? "" : "hidden"} md:flex`}>
-        <SchedulePane tasks={optimisticTasks} onUpdateTask={updateTask} selectedDate={selectedDate} onChangeDate={setSelectedDate} />
+        <SchedulePane
+          tasks={optimisticTasks}
+          onUpdateTask={updateTask}
+          selectedDate={selectedDate}
+          onChangeDate={setSelectedDate}
+          onScheduleTask={scheduleTask}
+          onScheduleTaskAllDay={scheduleTaskAllDay}
+        />
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
-        <BacklogPane tasks={optimisticTasks} onAddTask={addTask} onToggleTask={toggleTask} onScheduleTask={scheduleTask} onUpdateTask={updateTask} />
+        <BacklogPane
+          tasks={optimisticTasks}
+          onAddTask={addTask}
+          onToggleTask={toggleTask}
+          onScheduleTask={scheduleTask}
+          onScheduleTaskAllDay={scheduleTaskAllDay}
+          onUpdateTask={updateTask}
+        />
       </div>
     </div>
   );

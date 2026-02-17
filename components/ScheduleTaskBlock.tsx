@@ -1,17 +1,13 @@
 "use client";
 
 import { Task } from "@/types/task";
+import { timeToMinutes } from "@/lib/time";
 
 type Props = {
   task: Task;
   rowHeight: number;
   onOpenDetail: (id: string) => void;
 };
-
-function timeToMinutes(time: string): number {
-  const [h, m] = time.split(":").map(Number);
-  return h * 60 + m;
-}
 
 export default function ScheduleTaskBlock({ task, rowHeight, onOpenDetail }: Props) {
   if (!task.scheduledStart || !task.scheduledEnd) return null;

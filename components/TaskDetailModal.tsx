@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from "react";
 import { Task } from "@/types/task";
+import { formatEstimate } from "@/lib/time";
 
 type Props = {
   task: Task;
   onClose: () => void;
   onUpdate: (
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">>
   ) => void;
 };
 
@@ -17,6 +18,7 @@ export default function TaskDetailModal({ task, onClose, onUpdate }: Props) {
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [points, setPoints] = useState(task.points?.toString() ?? "");
+  const [estimate, setEstimate] = useState(task.estimatedMinutes?.toString() ?? "");
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -30,16 +32,19 @@ export default function TaskDetailModal({ task, onClose, onUpdate }: Props) {
     setTitle(task.title);
     setDescription(task.description ?? "");
     setPoints(task.points?.toString() ?? "");
+    setEstimate(task.estimatedMinutes?.toString() ?? "");
     setEditing(true);
   }
 
   function handleSave() {
-    const updates: Partial<Pick<Task, "title" | "description" | "points">> = {};
+    const updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">> = {};
     const trimmedTitle = title.trim();
     if (trimmedTitle && trimmedTitle !== task.title) updates.title = trimmedTitle;
     if (description !== (task.description ?? "")) updates.description = description || undefined;
     const parsedPoints = points ? Number(points) : undefined;
     if (parsedPoints !== task.points) updates.points = parsedPoints;
+    const parsedEstimate = estimate ? Number(estimate) : undefined;
+    if (parsedEstimate !== task.estimatedMinutes) updates.estimatedMinutes = parsedEstimate;
     if (Object.keys(updates).length > 0) onUpdate(task.id, updates);
     setEditing(false);
   }
@@ -116,17 +121,31 @@ export default function TaskDetailModal({ task, onClose, onUpdate }: Props) {
                 className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
               />
             </div>
-            <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                Points
-              </label>
-              <input
-                type="number"
-                value={points}
-                onChange={(e) => setPoints(e.target.value)}
-                min={0}
-                className="w-24 rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                  Points
+                </label>
+                <input
+                  type="number"
+                  value={points}
+                  onChange={(e) => setPoints(e.target.value)}
+                  min={0}
+                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                  Estimate (min)
+                </label>
+                <input
+                  type="number"
+                  value={estimate}
+                  onChange={(e) => setEstimate(e.target.value)}
+                  min={1}
+                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -155,11 +174,18 @@ export default function TaskDetailModal({ task, onClose, onUpdate }: Props) {
                 </span>
               )}
             </p>
-            {task.points != null && (
-              <span className="inline-block rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
-                {task.points} pts
-              </span>
-            )}
+            <div className="flex gap-2">
+              {task.points != null && (
+                <span className="inline-block rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  {task.points} pts
+                </span>
+              )}
+              {task.estimatedMinutes != null && (
+                <span className="inline-block rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                  {formatEstimate(task.estimatedMinutes)}
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>

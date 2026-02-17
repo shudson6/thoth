@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 type Props = {
-  onAdd: (title: string, points?: number, description?: string) => void;
+  onAdd: (title: string, points?: number, description?: string, estimatedMinutes?: number) => void;
   onCancel: () => void;
 };
 
@@ -11,15 +11,22 @@ export default function AddTaskForm({ onAdd, onCancel }: Props) {
   const [title, setTitle] = useState("");
   const [points, setPoints] = useState("");
   const [description, setDescription] = useState("");
+  const [estimate, setEstimate] = useState("");
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = title.trim();
     if (!trimmed) return;
-    onAdd(trimmed, points ? Number(points) : undefined, description.trim() || undefined);
+    onAdd(
+      trimmed,
+      points ? Number(points) : undefined,
+      description.trim() || undefined,
+      estimate ? Number(estimate) : undefined
+    );
     setTitle("");
     setPoints("");
     setDescription("");
+    setEstimate("");
   }
 
   return (
@@ -39,14 +46,24 @@ export default function AddTaskForm({ onAdd, onCancel }: Props) {
         rows={2}
         className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-transparent px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
       />
-      <input
-        type="number"
-        placeholder="Points (optional)"
-        min={0}
-        value={points}
-        onChange={(e) => setPoints(e.target.value)}
-        className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-transparent px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-      />
+      <div className="flex gap-3">
+        <input
+          type="number"
+          placeholder="Points"
+          min={0}
+          value={points}
+          onChange={(e) => setPoints(e.target.value)}
+          className="flex-1 rounded-md border border-zinc-300 dark:border-zinc-600 bg-transparent px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        />
+        <input
+          type="number"
+          placeholder="Estimate (min)"
+          min={1}
+          value={estimate}
+          onChange={(e) => setEstimate(e.target.value)}
+          className="flex-1 rounded-md border border-zinc-300 dark:border-zinc-600 bg-transparent px-3 py-1.5 text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+        />
+      </div>
       <div className="flex gap-2">
         <button
           type="submit"

@@ -26,6 +26,7 @@ CREATE TABLE tasks (
     scheduled_date      date,
     scheduled_start     time,
     scheduled_end       time,
+    estimated_minutes   smallint CHECK (estimated_minutes > 0),
     timezone            text,
     position            integer     NOT NULL DEFAULT 0,
     recurrence_rule     text,
@@ -35,9 +36,11 @@ CREATE TABLE tasks (
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
 
-    -- If scheduled, all three scheduling columns must be present
+    -- Scheduling: either all null, date-only (all-day), or date+start+end
     CONSTRAINT scheduled_fields_together CHECK (
         (scheduled_date IS NULL AND scheduled_start IS NULL AND scheduled_end IS NULL)
+        OR
+        (scheduled_date IS NOT NULL AND scheduled_start IS NULL AND scheduled_end IS NULL)
         OR
         (scheduled_date IS NOT NULL AND scheduled_start IS NOT NULL AND scheduled_end IS NOT NULL)
     ),
