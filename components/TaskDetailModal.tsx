@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { Task, Group } from "@/types/task";
-import { formatEstimate } from "@/lib/time";
+import { formatEstimate, timeToMinutes, minutesToTime } from "@/lib/time";
 import GroupPicker from "./GroupPicker";
 
 type Props = {
@@ -99,6 +99,27 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
     setEditing(false);
   }
 
+  function handleScheduledStartChange(newStart: string) {
+    const parsedEstimate = estimate ? Number(estimate) : null;
+    const newStartMin = timeToMinutes(newStart);
+    if (parsedEstimate != null && scheduledStart) {
+      setScheduledEnd(minutesToTime(Math.min(newStartMin + parsedEstimate, 24 * 60 - 1)));
+    } else if (scheduledEnd) {
+      const delta = newStartMin - timeToMinutes(scheduledStart);
+      const newEndMin = Math.min(Math.max(timeToMinutes(scheduledEnd) + delta, newStartMin + 15), 24 * 60 - 1);
+      setScheduledEnd(minutesToTime(newEndMin));
+    }
+    setScheduledStart(newStart);
+  }
+
+  function handleEstimateChange(newEstimate: string) {
+    const parsedEstimate = newEstimate ? Number(newEstimate) : null;
+    if (parsedEstimate != null && scheduledStart) {
+      setScheduledEnd(minutesToTime(Math.min(timeToMinutes(scheduledStart) + parsedEstimate, 24 * 60 - 1)));
+    }
+    setEstimate(newEstimate);
+  }
+
   const taskGroup = groups.find((g) => g.id === task.groupId);
 
   return (
@@ -189,7 +210,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                 <input
                   type="number"
                   value={estimate}
-                  onChange={(e) => setEstimate(e.target.value)}
+                  onChange={(e) => handleEstimateChange(e.target.value)}
                   min={1}
                   className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
@@ -223,7 +244,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                     <input
                       type="time"
                       value={scheduledStart}
-                      onChange={(e) => setScheduledStart(e.target.value)}
+                      onChange={(e) => handleScheduledStartChange(e.target.value)}
                       disabled={isAllDay}
                       className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40"
                     />
@@ -236,7 +257,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                       type="time"
                       value={scheduledEnd}
                       onChange={(e) => setScheduledEnd(e.target.value)}
-                      disabled={isAllDay}
+                      disabled={isAllDay || !!estimate}
                       className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40"
                     />
                   </div>
