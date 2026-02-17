@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Task } from "@/types/task";
-import { formatEstimate } from "@/lib/time";
+import { formatEstimate, timeToMinutes, minutesToTime } from "@/lib/time";
 
 type Props = {
   task: Task;
@@ -17,7 +17,22 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [isAllDay, setIsAllDay] = useState(false);
   const [start, setStart] = useState("09:00");
-  const [end, setEnd] = useState("10:00");
+  const [end, setEnd] = useState(() =>
+    minutesToTime(9 * 60 + (task.estimatedMinutes ?? 60))
+  );
+
+  function handleStartChange(newStart: string) {
+    const oldStartMin = timeToMinutes(start);
+    const newStartMin = timeToMinutes(newStart);
+    if (task.estimatedMinutes != null) {
+      setEnd(minutesToTime(Math.min(newStartMin + task.estimatedMinutes, 24 * 60 - 1)));
+    } else {
+      const delta = newStartMin - oldStartMin;
+      const newEndMin = Math.min(Math.max(timeToMinutes(end) + delta, newStartMin + 15), 24 * 60 - 1);
+      setEnd(minutesToTime(newEndMin));
+    }
+    setStart(newStart);
+  }
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/plain", task.id);
@@ -102,7 +117,7 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
               <input
                 type="time"
                 value={start}
-                onChange={(e) => setStart(e.target.value)}
+                onChange={(e) => handleStartChange(e.target.value)}
                 className="text-xs border border-zinc-300 dark:border-zinc-600 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200"
               />
               <span className="text-xs text-zinc-400">–</span>
@@ -110,7 +125,8 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
                 type="time"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
-                className="text-xs border border-zinc-300 dark:border-zinc-600 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200"
+                disabled={task.estimatedMinutes != null}
+                className="text-xs border border-zinc-300 dark:border-zinc-600 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200 disabled:opacity-40"
               />
             </div>
           )}
