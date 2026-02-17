@@ -16,6 +16,15 @@ CREATE TABLE settings (
     value text NOT NULL
 );
 
+-- Task groups
+CREATE TABLE groups (
+    id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    name       text NOT NULL UNIQUE,
+    color      text NOT NULL DEFAULT '#3b82f6',
+    position   integer NOT NULL DEFAULT 0,
+    created_at timestamptz NOT NULL DEFAULT now()
+);
+
 -- Tasks
 CREATE TABLE tasks (
     id                  uuid        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -27,6 +36,7 @@ CREATE TABLE tasks (
     scheduled_start     time,
     scheduled_end       time,
     estimated_minutes   smallint CHECK (estimated_minutes > 0),
+    group_id            uuid        REFERENCES groups(id) ON DELETE SET NULL,
     timezone            text,
     position            integer     NOT NULL DEFAULT 0,
     recurrence_rule     text,
@@ -69,6 +79,7 @@ CREATE INDEX idx_tasks_scheduled_date   ON tasks (scheduled_date)      WHERE sch
 CREATE INDEX idx_tasks_backlog          ON tasks (position)            WHERE scheduled_date IS NULL;
 CREATE INDEX idx_tasks_recurring_parent ON tasks (recurring_parent_id) WHERE recurring_parent_id IS NOT NULL;
 CREATE INDEX idx_tasks_recurrence       ON tasks (id)                  WHERE recurrence_rule IS NOT NULL;
+CREATE INDEX idx_tasks_group            ON tasks (group_id)            WHERE group_id IS NOT NULL;
 
 -- Auto-update updated_at on every UPDATE
 CREATE TRIGGER tasks_updated_at
