@@ -1,25 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Task } from "@/types/task";
+import { Task, Group } from "@/types/task";
 import { formatEstimate } from "@/lib/time";
+import GroupPicker from "./GroupPicker";
 
 type Props = {
   task: Task;
+  groups: Group[];
   onClose: () => void;
   onUpdate: (
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
   ) => void;
+  onCreateGroup: (name: string, color: string) => void;
   onDeschedule?: (id: string) => void;
 };
 
-export default function TaskDetailModal({ task, onClose, onUpdate, onDeschedule }: Props) {
+export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCreateGroup, onDeschedule }: Props) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [points, setPoints] = useState(task.points?.toString() ?? "");
   const [estimate, setEstimate] = useState(task.estimatedMinutes?.toString() ?? "");
+  const [groupId, setGroupId] = useState<string | null>(task.groupId ?? null);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -34,11 +38,12 @@ export default function TaskDetailModal({ task, onClose, onUpdate, onDeschedule 
     setDescription(task.description ?? "");
     setPoints(task.points?.toString() ?? "");
     setEstimate(task.estimatedMinutes?.toString() ?? "");
+    setGroupId(task.groupId ?? null);
     setEditing(true);
   }
 
   function handleSave() {
-    const updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">> = {};
+    const updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">> = {};
     const trimmedTitle = title.trim();
     if (trimmedTitle && trimmedTitle !== task.title) updates.title = trimmedTitle;
     if (description !== (task.description ?? "")) updates.description = description || undefined;
@@ -46,6 +51,8 @@ export default function TaskDetailModal({ task, onClose, onUpdate, onDeschedule 
     if (parsedPoints !== task.points) updates.points = parsedPoints;
     const parsedEstimate = estimate ? Number(estimate) : undefined;
     if (parsedEstimate !== task.estimatedMinutes) updates.estimatedMinutes = parsedEstimate;
+    const newGroupId = groupId ?? undefined;
+    if (newGroupId !== task.groupId) updates.groupId = newGroupId;
     if (Object.keys(updates).length > 0) onUpdate(task.id, updates);
     setEditing(false);
   }
@@ -53,6 +60,8 @@ export default function TaskDetailModal({ task, onClose, onUpdate, onDeschedule 
   function handleCancel() {
     setEditing(false);
   }
+
+  const taskGroup = groups.find((g) => g.id === task.groupId);
 
   return (
     <div
@@ -148,6 +157,17 @@ export default function TaskDetailModal({ task, onClose, onUpdate, onDeschedule 
                 />
               </div>
             </div>
+            <div>
+              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                Group
+              </label>
+              <GroupPicker
+                groups={groups}
+                selectedGroupId={groupId}
+                onChange={setGroupId}
+                onCreateGroup={onCreateGroup}
+              />
+            </div>
             <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={handleCancel}
@@ -175,7 +195,15 @@ export default function TaskDetailModal({ task, onClose, onUpdate, onDeschedule 
                 </span>
               )}
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {taskGroup && (
+                <span
+                  className="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-xs font-medium text-white"
+                  style={{ backgroundColor: taskGroup.color }}
+                >
+                  {taskGroup.name}
+                </span>
+              )}
               {task.points != null && (
                 <span className="inline-block rounded-md bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:text-zinc-400">
                   {task.points} pts
