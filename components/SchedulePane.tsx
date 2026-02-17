@@ -53,21 +53,23 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
   }, [rowHeight]);
 
   const scheduledTasks = tasks.filter(
-    (t) => t.scheduledStart && t.scheduledEnd && !t.completed
+    (t) => t.scheduledStart && t.scheduledEnd && !t.completed && t.scheduledDate === selectedDate
   );
 
-  // Current time indicator
+  // Current time indicator (only shown when viewing today)
+  const isToday = selectedDate === new Date().toISOString().slice(0, 10);
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const [timeOffset, setTimeOffset] = useState(currentMinutes);
 
   useEffect(() => {
+    if (!isToday) return;
     const interval = setInterval(() => {
       const n = new Date();
       setTimeOffset(n.getHours() * 60 + n.getMinutes());
     }, 60_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [isToday]);
 
   const totalHeight = rowHeight * 24;
   const timeIndicatorTop = rowHeight > 0 ? (timeOffset / 60) * rowHeight : 0;
@@ -90,12 +92,14 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
           ))}
 
           {/* Current time indicator */}
-          <div
-            className="absolute left-14 right-0 border-t-2 border-red-500 z-20 pointer-events-none"
-            style={{ top: timeIndicatorTop }}
-          >
-            <div className="w-2.5 h-2.5 rounded-full bg-red-500 -mt-[6px] -ml-[5px]" />
-          </div>
+          {isToday && (
+            <div
+              className="absolute left-14 right-0 border-t-2 border-red-500 z-20 pointer-events-none"
+              style={{ top: timeIndicatorTop }}
+            >
+              <div className="w-2.5 h-2.5 rounded-full bg-red-500 -mt-[6px] -ml-[5px]" />
+            </div>
+          )}
 
           {/* Scheduled task blocks */}
           {scheduledTasks.map((task) => (
