@@ -8,6 +8,7 @@ import {
   addTask as addTaskAction,
   toggleTask as toggleTaskAction,
   scheduleTask as scheduleTaskAction,
+  descheduleTask as descheduleTaskAction,
   scheduleTaskAllDay as scheduleTaskAllDayAction,
   updateTask as updateTaskAction,
 } from "@/app/actions";
@@ -17,6 +18,7 @@ type Action =
   | { type: "toggle"; id: string }
   | { type: "schedule"; id: string; start: string; end: string; date: string }
   | { type: "scheduleAllDay"; id: string; date: string }
+  | { type: "deschedule"; id: string }
   | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">> };
 
 function tasksReducer(tasks: Task[], action: Action): Task[] {
@@ -37,6 +39,12 @@ function tasksReducer(tasks: Task[], action: Action): Task[] {
       return tasks.map((t) =>
         t.id === action.id
           ? { ...t, scheduledDate: action.date, scheduledStart: undefined, scheduledEnd: undefined }
+          : t
+      );
+    case "deschedule":
+      return tasks.map((t) =>
+        t.id === action.id
+          ? { ...t, scheduledDate: undefined, scheduledStart: undefined, scheduledEnd: undefined }
           : t
       );
     case "update":
@@ -72,6 +80,13 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
     startTransition(async () => {
       dispatchOptimistic({ type: "schedule", id, start, end, date: selectedDate });
       await scheduleTaskAction(id, start, end, selectedDate);
+    });
+  }
+
+  function descheduleTask(id: string) {
+    startTransition(async () => {
+      dispatchOptimistic({ type: "deschedule", id });
+      await descheduleTaskAction(id);
     });
   }
 
@@ -128,6 +143,7 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
           onChangeDate={setSelectedDate}
           onScheduleTask={scheduleTask}
           onScheduleTaskAllDay={scheduleTaskAllDay}
+          onDescheduleTask={descheduleTask}
         />
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
@@ -137,6 +153,7 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
           onToggleTask={toggleTask}
           onScheduleTask={scheduleTask}
           onScheduleTaskAllDay={scheduleTaskAllDay}
+          onDescheduleTask={descheduleTask}
           onUpdateTask={updateTask}
         />
       </div>
