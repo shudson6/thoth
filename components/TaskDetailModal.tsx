@@ -11,9 +11,10 @@ type Props = {
     id: string,
     updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">>
   ) => void;
+  onDeschedule?: (id: string) => void;
 };
 
-export default function TaskDetailModal({ task, onClose, onUpdate }: Props) {
+export default function TaskDetailModal({ task, onClose, onUpdate, onDeschedule }: Props) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
@@ -186,6 +187,14 @@ export default function TaskDetailModal({ task, onClose, onUpdate }: Props) {
                 </span>
               )}
             </div>
+            {task.scheduledDate && onDeschedule && (
+              <button
+                onClick={() => { onDeschedule(task.id); onClose(); }}
+                className="text-xs font-medium text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+              >
+                Move to Backlog
+              </button>
+            )}
           </div>
         )}
       </div>
