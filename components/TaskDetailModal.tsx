@@ -15,15 +15,37 @@ type Props = {
   ) => void;
   onCreateGroup: (name: string, color: string) => void;
   onDeschedule?: (id: string) => void;
+  onReschedule?: (
+    id: string,
+    date: string,
+    start: string | undefined,
+    end: string | undefined
+  ) => void;
 };
 
-export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCreateGroup, onDeschedule }: Props) {
+function formatScheduledDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
+
+function formatTime(t: string): string {
+  const [h, m] = t.split(":").map(Number);
+  const suffix = h >= 12 ? "PM" : "AM";
+  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  return m === 0 ? `${hour} ${suffix}` : `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
+}
+
+export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCreateGroup, onDeschedule, onReschedule }: Props) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [points, setPoints] = useState(task.points?.toString() ?? "");
   const [estimate, setEstimate] = useState(task.estimatedMinutes?.toString() ?? "");
   const [groupId, setGroupId] = useState<string | null>(task.groupId ?? null);
+  const [scheduledDate, setScheduledDate] = useState(task.scheduledDate ?? "");
+  const [scheduledStart, setScheduledStart] = useState(task.scheduledStart ?? "");
+  const [scheduledEnd, setScheduledEnd] = useState(task.scheduledEnd ?? "");
+  const [isAllDay, setIsAllDay] = useState(!task.scheduledStart && !task.scheduledEnd);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -39,6 +61,10 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
     setPoints(task.points?.toString() ?? "");
     setEstimate(task.estimatedMinutes?.toString() ?? "");
     setGroupId(task.groupId ?? null);
+    setScheduledDate(task.scheduledDate ?? "");
+    setScheduledStart(task.scheduledStart ?? "");
+    setScheduledEnd(task.scheduledEnd ?? "");
+    setIsAllDay(!task.scheduledStart && !task.scheduledEnd);
     setEditing(true);
   }
 
@@ -54,6 +80,18 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
     const newGroupId = groupId ?? undefined;
     if (newGroupId !== task.groupId) updates.groupId = newGroupId;
     if (Object.keys(updates).length > 0) onUpdate(task.id, updates);
+
+    if (onReschedule && scheduledDate) {
+      const newStart = isAllDay ? undefined : scheduledStart || undefined;
+      const newEnd = isAllDay ? undefined : scheduledEnd || undefined;
+      const dateChanged = scheduledDate !== task.scheduledDate;
+      const startChanged = newStart !== task.scheduledStart;
+      const endChanged = newEnd !== task.scheduledEnd;
+      if (dateChanged || startChanged || endChanged) {
+        onReschedule(task.id, scheduledDate, newStart, newEnd);
+      }
+    }
+
     setEditing(false);
   }
 
@@ -157,6 +195,54 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                 />
               </div>
             </div>
+            {onReschedule && task.scheduledDate && (
+              <div className="space-y-2">
+                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400">
+                  Schedule
+                </label>
+                <input
+                  type="date"
+                  value={scheduledDate}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={isAllDay}
+                    onChange={(e) => setIsAllDay(e.target.checked)}
+                    className="rounded border-zinc-300 dark:border-zinc-600"
+                  />
+                  All day
+                </label>
+                <div className="flex gap-3">
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                      Start
+                    </label>
+                    <input
+                      type="time"
+                      value={scheduledStart}
+                      onChange={(e) => setScheduledStart(e.target.value)}
+                      disabled={isAllDay}
+                      className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
+                      End
+                    </label>
+                    <input
+                      type="time"
+                      value={scheduledEnd}
+                      onChange={(e) => setScheduledEnd(e.target.value)}
+                      disabled={isAllDay}
+                      className="w-full rounded-md border border-zinc-300 dark:border-zinc-600 bg-white dark:bg-zinc-800 px-3 py-1.5 text-sm text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-40"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
                 Group
@@ -215,6 +301,20 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                 </span>
               )}
             </div>
+            {task.scheduledDate && (
+              <div className="flex items-center gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 shrink-0">
+                  <path fillRule="evenodd" d="M5.75 2a.75.75 0 0 1 .75.75V4h7V2.75a.75.75 0 0 1 1.5 0V4h.25A2.75 2.75 0 0 1 18 6.75v8.5A2.75 2.75 0 0 1 15.25 18H4.75A2.75 2.75 0 0 1 2 15.25v-8.5A2.75 2.75 0 0 1 4.75 4H5V2.75A.75.75 0 0 1 5.75 2Zm-1 5.5c-.69 0-1.25.56-1.25 1.25v6.5c0 .69.56 1.25 1.25 1.25h10.5c.69 0 1.25-.56 1.25-1.25v-6.5c0-.69-.56-1.25-1.25-1.25H4.75Z" clipRule="evenodd" />
+                </svg>
+                <span>{formatScheduledDate(task.scheduledDate)}</span>
+                <span>·</span>
+                <span>
+                  {task.scheduledStart && task.scheduledEnd
+                    ? `${formatTime(task.scheduledStart)} – ${formatTime(task.scheduledEnd)}`
+                    : "All day"}
+                </span>
+              </div>
+            )}
             {task.scheduledDate && onDeschedule && (
               <button
                 onClick={() => { onDeschedule(task.id); onClose(); }}

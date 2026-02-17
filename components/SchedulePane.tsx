@@ -18,6 +18,7 @@ type Props = {
   onScheduleTask: (id: string, start: string, end: string) => void;
   onScheduleTaskAllDay: (id: string) => void;
   onDescheduleTask: (id: string) => void;
+  onRescheduleTask?: (id: string, date: string, start: string | undefined, end: string | undefined) => void;
   onCreateGroup: (name: string, color: string) => void;
 };
 
@@ -46,7 +47,7 @@ function snapToGrid(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
-export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onCreateGroup }: Props) {
+export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -301,6 +302,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
             onUpdate={onUpdateTask}
             onCreateGroup={onCreateGroup}
             onDeschedule={onDescheduleTask}
+            onReschedule={onRescheduleTask}
           />
         )}
       </div>

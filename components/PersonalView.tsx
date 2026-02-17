@@ -127,6 +127,20 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
     });
   }
 
+  function rescheduleTask(id: string, date: string, start: string | undefined, end: string | undefined) {
+    if (start && end) {
+      startTransition(async () => {
+        dispatchTasks({ type: "schedule", id, start, end, date });
+        await scheduleTaskAction(id, start, end, date);
+      });
+    } else {
+      startTransition(async () => {
+        dispatchTasks({ type: "scheduleAllDay", id, date });
+        await scheduleTaskAllDayAction(id, date);
+      });
+    }
+  }
+
   function updateTask(
     id: string,
     updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
@@ -200,6 +214,7 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
           onScheduleTask={scheduleTask}
           onScheduleTaskAllDay={scheduleTaskAllDay}
           onDescheduleTask={descheduleTask}
+          onRescheduleTask={rescheduleTask}
           onCreateGroup={handleCreateGroup}
         />
       </div>
