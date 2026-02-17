@@ -1,22 +1,24 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Task } from "@/types/task";
+import { Task, Group } from "@/types/task";
 import ScheduleTaskBlock from "./ScheduleTaskBlock";
 import TaskDetailModal from "./TaskDetailModal";
 import { timeToMinutes, minutesToTime } from "@/lib/time";
 
 type Props = {
   tasks: Task[];
+  groups: Group[];
   onUpdateTask: (
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
   ) => void;
   selectedDate: string;
   onChangeDate: (date: string) => void;
   onScheduleTask: (id: string, start: string, end: string) => void;
   onScheduleTaskAllDay: (id: string) => void;
   onDescheduleTask: (id: string) => void;
+  onCreateGroup: (name: string, color: string) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -44,7 +46,7 @@ function snapToGrid(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
-export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask }: Props) {
+export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onCreateGroup }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
@@ -281,8 +283,10 @@ export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChan
         {selectedTask && (
           <TaskDetailModal
             task={selectedTask}
+            groups={groups}
             onClose={() => setSelectedTaskId(null)}
             onUpdate={onUpdateTask}
+            onCreateGroup={onCreateGroup}
             onDeschedule={onDescheduleTask}
           />
         )}

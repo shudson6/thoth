@@ -200,6 +200,7 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
           onScheduleTask={scheduleTask}
           onScheduleTaskAllDay={scheduleTaskAllDay}
           onDescheduleTask={descheduleTask}
+          onCreateGroup={handleCreateGroup}
         />
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
