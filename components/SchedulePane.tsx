@@ -11,6 +11,8 @@ type Props = {
     id: string,
     updates: Partial<Pick<Task, "title" | "description" | "points">>
   ) => void;
+  selectedDate: string;
+  onChangeDate: (date: string) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -22,7 +24,7 @@ function formatHour(h: number): string {
   return `${display} ${suffix}`;
 }
 
-export default function SchedulePane({ tasks, onUpdateTask }: Props) {
+export default function SchedulePane({ tasks, onUpdateTask, selectedDate, onChangeDate }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [rowHeight, setRowHeight] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);

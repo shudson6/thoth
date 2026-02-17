@@ -75,6 +75,7 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
     });
   }
 
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [activeTab, setActiveTab] = useState<"schedule" | "backlog">("schedule");
 
   return (
@@ -104,7 +105,7 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
       </div>
 
       <div className={`flex-1 min-h-0 flex flex-col ${activeTab === "schedule" ? "" : "hidden"} md:flex`}>
-        <SchedulePane tasks={optimisticTasks} onUpdateTask={updateTask} />
+        <SchedulePane tasks={optimisticTasks} onUpdateTask={updateTask} selectedDate={selectedDate} onChangeDate={setSelectedDate} />
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
         <BacklogPane tasks={optimisticTasks} onAddTask={addTask} onToggleTask={toggleTask} onScheduleTask={scheduleTask} onUpdateTask={updateTask} />
