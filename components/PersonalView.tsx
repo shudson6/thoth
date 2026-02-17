@@ -14,7 +14,7 @@ import {
 type Action =
   | { type: "add"; task: Task }
   | { type: "toggle"; id: string }
-  | { type: "schedule"; id: string; start: string; end: string }
+  | { type: "schedule"; id: string; start: string; end: string; date: string }
   | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points">> };
 
 function tasksReducer(tasks: Task[], action: Action): Task[] {
@@ -28,7 +28,7 @@ function tasksReducer(tasks: Task[], action: Action): Task[] {
     case "schedule":
       return tasks.map((t) =>
         t.id === action.id
-          ? { ...t, scheduledStart: action.start, scheduledEnd: action.end }
+          ? { ...t, scheduledDate: action.date, scheduledStart: action.start, scheduledEnd: action.end }
           : t
       );
     case "update":
@@ -41,6 +41,8 @@ function tasksReducer(tasks: Task[], action: Action): Task[] {
 export default function PersonalView({ initialTasks }: { initialTasks: Task[] }) {
   const [optimisticTasks, dispatchOptimistic] = useOptimistic(initialTasks, tasksReducer);
   const [, startTransition] = useTransition();
+
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
 
   function addTask(title: string, points?: number, description?: string) {
     const tempId = Math.random().toString(36).slice(2);
@@ -60,8 +62,8 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
 
   function scheduleTask(id: string, start: string, end: string) {
     startTransition(async () => {
-      dispatchOptimistic({ type: "schedule", id, start, end });
-      await scheduleTaskAction(id, start, end);
+      dispatchOptimistic({ type: "schedule", id, start, end, date: selectedDate });
+      await scheduleTaskAction(id, start, end, selectedDate);
     });
   }
 
@@ -75,7 +77,6 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
     });
   }
 
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [activeTab, setActiveTab] = useState<"schedule" | "backlog">("schedule");
 
   return (

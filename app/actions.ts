@@ -26,13 +26,12 @@ export async function toggleTask(id: string) {
   revalidatePath("/");
 }
 
-export async function scheduleTask(id: string, start: string, end: string) {
-  const today = new Date().toISOString().slice(0, 10);
+export async function scheduleTask(id: string, start: string, end: string, date: string) {
   await pool.query(
     `UPDATE tasks
      SET scheduled_date = $2, scheduled_start = $3, scheduled_end = $4, updated_at = now()
      WHERE id = $1`,
-    [id, today, start, end]
+    [id, date, start, end]
   );
   revalidatePath("/");
 }
