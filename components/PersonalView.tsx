@@ -106,10 +106,11 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
     });
   }
 
-  function scheduleTask(id: string, start: string, end: string) {
+  function scheduleTask(id: string, start: string, end: string, date?: string) {
+    const d = date ?? selectedDate;
     startTransition(async () => {
-      dispatchTasks({ type: "schedule", id, start, end, date: selectedDate });
-      await scheduleTaskAction(id, start, end, selectedDate);
+      dispatchTasks({ type: "schedule", id, start, end, date: d });
+      await scheduleTaskAction(id, start, end, d);
     });
   }
 
@@ -120,10 +121,11 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
     });
   }
 
-  function scheduleTaskAllDay(id: string) {
+  function scheduleTaskAllDay(id: string, date?: string) {
+    const d = date ?? selectedDate;
     startTransition(async () => {
-      dispatchTasks({ type: "scheduleAllDay", id, date: selectedDate });
-      await scheduleTaskAllDayAction(id, selectedDate);
+      dispatchTasks({ type: "scheduleAllDay", id, date: d });
+      await scheduleTaskAllDayAction(id, d);
     });
   }
 

@@ -7,12 +7,15 @@ import { formatEstimate } from "@/lib/time";
 type Props = {
   task: Task;
   onToggle: (id: string) => void;
-  onSchedule: (id: string, start: string, end: string) => void;
+  onSchedule: (id: string, start: string, end: string, date: string) => void;
+  onScheduleAllDay: (id: string, date: string) => void;
   onOpenDetail: (id: string) => void;
 };
 
-export default function BacklogTaskItem({ task, onToggle, onSchedule, onOpenDetail }: Props) {
+export default function BacklogTaskItem({ task, onToggle, onSchedule, onScheduleAllDay, onOpenDetail }: Props) {
   const [showPicker, setShowPicker] = useState(false);
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [isAllDay, setIsAllDay] = useState(false);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState("10:00");
 
@@ -76,29 +79,56 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onOpenDeta
         )}
       </div>
       {showPicker && (
-        <div className="flex items-center gap-2 px-4 pb-2.5 pl-11">
-          <input
-            type="time"
-            value={start}
-            onChange={(e) => setStart(e.target.value)}
-            className="text-xs border border-zinc-300 dark:border-zinc-600 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200"
-          />
-          <span className="text-xs text-zinc-400">–</span>
-          <input
-            type="time"
-            value={end}
-            onChange={(e) => setEnd(e.target.value)}
-            className="text-xs border border-zinc-300 dark:border-zinc-600 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200"
-          />
-          <button
-            onClick={() => {
-              onSchedule(task.id, start, end);
-              setShowPicker(false);
-            }}
-            className="text-xs bg-blue-500 text-white rounded px-2 py-1 hover:bg-blue-600 transition-colors font-medium"
-          >
-            Confirm
-          </button>
+        <div className="flex flex-col gap-2 px-4 pb-2.5 pl-11">
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="text-xs border border-zinc-300 dark:border-zinc-600 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200"
+            />
+            <label className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={isAllDay}
+                onChange={(e) => setIsAllDay(e.target.checked)}
+                className="rounded border-zinc-300 dark:border-zinc-600"
+              />
+              All day
+            </label>
+          </div>
+          {!isAllDay && (
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={start}
+                onChange={(e) => setStart(e.target.value)}
+                className="text-xs border border-zinc-300 dark:border-zinc-600 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200"
+              />
+              <span className="text-xs text-zinc-400">–</span>
+              <input
+                type="time"
+                value={end}
+                onChange={(e) => setEnd(e.target.value)}
+                className="text-xs border border-zinc-300 dark:border-zinc-600 rounded px-1.5 py-1 bg-white dark:bg-zinc-900 text-zinc-800 dark:text-zinc-200"
+              />
+            </div>
+          )}
+          <div>
+            <button
+              onClick={() => {
+                if (isAllDay) {
+                  onScheduleAllDay(task.id, date);
+                } else {
+                  onSchedule(task.id, start, end, date);
+                }
+                setShowPicker(false);
+              }}
+              className="text-xs bg-blue-500 text-white rounded px-2 py-1 hover:bg-blue-600 transition-colors font-medium"
+            >
+              Confirm
+            </button>
+          </div>
         </div>
       )}
     </div>

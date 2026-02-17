@@ -11,8 +11,8 @@ type Props = {
   groups: Group[];
   onAddTask: (title: string, points?: number, description?: string, estimatedMinutes?: number, groupId?: string) => void;
   onToggleTask: (id: string) => void;
-  onScheduleTask: (id: string, start: string, end: string) => void;
-  onScheduleTaskAllDay: (id: string) => void;
+  onScheduleTask: (id: string, start: string, end: string, date: string) => void;
+  onScheduleTaskAllDay: (id: string, date: string) => void;
   onDescheduleTask: (id: string) => void;
   onUpdateTask: (
     id: string,
@@ -124,7 +124,7 @@ export default function BacklogPane({
 
         {/* Ungrouped tasks */}
         {ungrouped.map((task) => (
-          <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onOpenDetail={setSelectedTaskId} />
+          <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} />
         ))}
 
         {/* Group sections */}
@@ -137,6 +137,7 @@ export default function BacklogPane({
             onToggleCollapse={() => toggleCollapse(group.id)}
             onToggleTask={onToggleTask}
             onScheduleTask={onScheduleTask}
+            onScheduleTaskAllDay={onScheduleTaskAllDay}
             onOpenDetail={setSelectedTaskId}
             onAddTask={() => handleShowForm(group.id)}
             onUpdateGroup={onUpdateGroup}
@@ -151,7 +152,7 @@ export default function BacklogPane({
               Completed ({completed.length})
             </div>
             {completed.map((task) => (
-              <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onOpenDetail={setSelectedTaskId} />
+              <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} />
             ))}
           </div>
         )}
@@ -178,7 +179,8 @@ type GroupSectionProps = {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onToggleTask: (id: string) => void;
-  onScheduleTask: (id: string, start: string, end: string) => void;
+  onScheduleTask: (id: string, start: string, end: string, date: string) => void;
+  onScheduleTaskAllDay: (id: string, date: string) => void;
   onOpenDetail: (id: string) => void;
   onAddTask: () => void;
   onUpdateGroup: (id: string, updates: Partial<Pick<Group, "name" | "color">>) => void;
@@ -187,7 +189,7 @@ type GroupSectionProps = {
 
 function GroupSection({
   group, tasks, collapsed, onToggleCollapse, onToggleTask,
-  onScheduleTask, onOpenDetail, onAddTask, onUpdateGroup, onDeleteGroup,
+  onScheduleTask, onScheduleTaskAllDay, onOpenDetail, onAddTask, onUpdateGroup, onDeleteGroup,
 }: GroupSectionProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -348,7 +350,7 @@ function GroupSection({
 
       {/* Group tasks */}
       {!collapsed && tasks.map((task) => (
-        <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onOpenDetail={onOpenDetail} />
+        <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={onOpenDetail} />
       ))}
     </div>
   );
