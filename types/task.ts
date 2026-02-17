@@ -8,4 +8,11 @@ export type Task = {
   scheduledStart?: string; // "HH:MM" e.g. "09:00"
   scheduledEnd?: string;   // "HH:MM" e.g. "10:30"
   estimatedMinutes?: number;
+  groupId?: string;
+};
+
+export type Group = {
+  id: string;
+  name: string;
+  color: string;
 };

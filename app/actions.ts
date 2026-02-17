@@ -7,13 +7,14 @@ export async function addTask(
   title: string,
   points?: number,
   description?: string,
-  estimatedMinutes?: number
+  estimatedMinutes?: number,
+  groupId?: string
 ) {
   const { rows } = await pool.query(
-    `INSERT INTO tasks (title, points, description, estimated_minutes)
-     VALUES ($1, $2, $3, $4)
+    `INSERT INTO tasks (title, points, description, estimated_minutes, group_id)
+     VALUES ($1, $2, $3, $4, $5)
      RETURNING id`,
-    [title, points ?? null, description ?? null, estimatedMinutes ?? null]
+    [title, points ?? null, description ?? null, estimatedMinutes ?? null, groupId ?? null]
   );
   revalidatePath("/");
   return rows[0].id as string;
@@ -59,7 +60,7 @@ export async function scheduleTaskAllDay(id: string, date: string) {
 
 export async function updateTask(
   id: string,
-  updates: { title?: string; description?: string; points?: number; estimatedMinutes?: number }
+  updates: { title?: string; description?: string; points?: number; estimatedMinutes?: number; groupId?: string | null }
 ) {
   const sets: string[] = [];
   const vals: unknown[] = [];
@@ -81,6 +82,10 @@ export async function updateTask(
     sets.push(`estimated_minutes = $${i++}`);
     vals.push(updates.estimatedMinutes || null);
   }
+  if (updates.groupId !== undefined) {
+    sets.push(`group_id = $${i++}`);
+    vals.push(updates.groupId);
+  }
 
   if (sets.length === 0) return;
 
@@ -89,5 +94,48 @@ export async function updateTask(
     `UPDATE tasks SET ${sets.join(", ")} WHERE id = $1`,
     [id, ...vals]
   );
+  revalidatePath("/");
+}
+
+export async function createGroup(name: string, color?: string) {
+  const { rows } = await pool.query(
+    `INSERT INTO groups (name, color) VALUES ($1, $2) RETURNING id`,
+    [name, color ?? "#3b82f6"]
+  );
+  revalidatePath("/");
+  return rows[0].id as string;
+}
+
+export async function updateGroup(
+  id: string,
+  updates: { name?: string; color?: string }
+) {
+  const sets: string[] = [];
+  const vals: unknown[] = [];
+  let i = 2;
+
+  if (updates.name !== undefined) {
+    sets.push(`name = $${i++}`);
+    vals.push(updates.name);
+  }
+  if (updates.color !== undefined) {
+    sets.push(`color = $${i++}`);
+    vals.push(updates.color);
+  }
+
+  if (sets.length === 0) return;
+
+  await pool.query(
+    `UPDATE groups SET ${sets.join(", ")} WHERE id = $1`,
+    [id, ...vals]
+  );
+  revalidatePath("/");
+}
+
+export async function deleteGroup(id: string, deleteTasks: boolean) {
+  if (deleteTasks) {
+    await pool.query(`DELETE FROM tasks WHERE group_id = $1`, [id]);
+  }
+  await pool.query(`DELETE FROM groups WHERE id = $1`, [id]);
   revalidatePath("/");
 }
