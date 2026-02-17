@@ -37,6 +37,16 @@ export async function scheduleTask(id: string, start: string, end: string, date:
   revalidatePath("/");
 }
 
+export async function descheduleTask(id: string) {
+  await pool.query(
+    `UPDATE tasks
+     SET scheduled_date = NULL, scheduled_start = NULL, scheduled_end = NULL, updated_at = now()
+     WHERE id = $1`,
+    [id]
+  );
+  revalidatePath("/");
+}
+
 export async function scheduleTaskAllDay(id: string, date: string) {
   await pool.query(
     `UPDATE tasks
