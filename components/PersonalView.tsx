@@ -1,45 +1,78 @@
 "use client";
 
-import { useState } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { Task } from "@/types/task";
 import SchedulePane from "./SchedulePane";
 import BacklogPane from "./BacklogPane";
+import {
+  addTask as addTaskAction,
+  toggleTask as toggleTaskAction,
+  scheduleTask as scheduleTaskAction,
+  updateTask as updateTaskAction,
+} from "@/app/actions";
 
-export default function PersonalView() {
-  const [tasks, setTasks] = useState<Task[]>([]);
+type Action =
+  | { type: "add"; task: Task }
+  | { type: "toggle"; id: string }
+  | { type: "schedule"; id: string; start: string; end: string }
+  | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points">> };
+
+function tasksReducer(tasks: Task[], action: Action): Task[] {
+  switch (action.type) {
+    case "add":
+      return [...tasks, action.task];
+    case "toggle":
+      return tasks.map((t) =>
+        t.id === action.id ? { ...t, completed: !t.completed } : t
+      );
+    case "schedule":
+      return tasks.map((t) =>
+        t.id === action.id
+          ? { ...t, scheduledStart: action.start, scheduledEnd: action.end }
+          : t
+      );
+    case "update":
+      return tasks.map((t) =>
+        t.id === action.id ? { ...t, ...action.updates } : t
+      );
+  }
+}
+
+export default function PersonalView({ initialTasks }: { initialTasks: Task[] }) {
+  const [optimisticTasks, dispatchOptimistic] = useOptimistic(initialTasks, tasksReducer);
+  const [, startTransition] = useTransition();
 
   function addTask(title: string, points?: number, description?: string) {
-    const task: Task = {
-      id: Date.now().toString(),
-      title,
-      description,
-      points,
-      completed: false,
-    };
-    setTasks((prev) => [...prev, task]);
+    const tempId = Math.random().toString(36).slice(2);
+    const task: Task = { id: tempId, title, description, points, completed: false };
+    startTransition(async () => {
+      dispatchOptimistic({ type: "add", task });
+      await addTaskAction(title, points, description);
+    });
   }
 
   function toggleTask(id: string) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
-    );
+    startTransition(async () => {
+      dispatchOptimistic({ type: "toggle", id });
+      await toggleTaskAction(id);
+    });
   }
 
   function scheduleTask(id: string, start: string, end: string) {
-    setTasks((prev) =>
-      prev.map((t) =>
-        t.id === id ? { ...t, scheduledStart: start, scheduledEnd: end } : t
-      )
-    );
+    startTransition(async () => {
+      dispatchOptimistic({ type: "schedule", id, start, end });
+      await scheduleTaskAction(id, start, end);
+    });
   }
 
   function updateTask(
     id: string,
     updates: Partial<Pick<Task, "title" | "description" | "points">>
   ) {
-    setTasks((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, ...updates } : t))
-    );
+    startTransition(async () => {
+      dispatchOptimistic({ type: "update", id, updates });
+      await updateTaskAction(id, updates);
+    });
   }
 
   const [activeTab, setActiveTab] = useState<"schedule" | "backlog">("schedule");
@@ -71,10 +104,10 @@ export default function PersonalView() {
       </div>
 
       <div className={`flex-1 min-h-0 flex flex-col ${activeTab === "schedule" ? "" : "hidden"} md:flex`}>
-        <SchedulePane tasks={tasks} onUpdateTask={updateTask} />
+        <SchedulePane tasks={optimisticTasks} onUpdateTask={updateTask} />
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
-        <BacklogPane tasks={tasks} onAddTask={addTask} onToggleTask={toggleTask} onScheduleTask={scheduleTask} onUpdateTask={updateTask} />
+        <BacklogPane tasks={optimisticTasks} onAddTask={addTask} onToggleTask={toggleTask} onScheduleTask={scheduleTask} onUpdateTask={updateTask} />
       </div>
     </div>
   );
