@@ -1,7 +1,7 @@
 "use client";
 
 import { useOptimistic, useState, useTransition } from "react";
-import { Task } from "@/types/task";
+import { Task, Group } from "@/types/task";
 import SchedulePane from "./SchedulePane";
 import BacklogPane from "./BacklogPane";
 import {
@@ -11,17 +11,21 @@ import {
   descheduleTask as descheduleTaskAction,
   scheduleTaskAllDay as scheduleTaskAllDayAction,
   updateTask as updateTaskAction,
+  createGroup as createGroupAction,
+  updateGroup as updateGroupAction,
+  deleteGroup as deleteGroupAction,
 } from "@/app/actions";
 
-type Action =
+type TaskAction =
   | { type: "add"; task: Task }
   | { type: "toggle"; id: string }
   | { type: "schedule"; id: string; start: string; end: string; date: string }
   | { type: "scheduleAllDay"; id: string; date: string }
   | { type: "deschedule"; id: string }
-  | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">> };
+  | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">> }
+  | { type: "deleteGroupTasks"; groupId: string };
 
-function tasksReducer(tasks: Task[], action: Action): Task[] {
+function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
   switch (action.type) {
     case "add":
       return [...tasks, action.task];
@@ -51,59 +55,110 @@ function tasksReducer(tasks: Task[], action: Action): Task[] {
       return tasks.map((t) =>
         t.id === action.id ? { ...t, ...action.updates } : t
       );
+    case "deleteGroupTasks":
+      return tasks.filter((t) => t.groupId !== action.groupId);
   }
 }
 
-export default function PersonalView({ initialTasks }: { initialTasks: Task[] }) {
-  const [optimisticTasks, dispatchOptimistic] = useOptimistic(initialTasks, tasksReducer);
+type GroupAction =
+  | { type: "add"; group: Group }
+  | { type: "update"; id: string; updates: Partial<Pick<Group, "name" | "color">> }
+  | { type: "delete"; id: string };
+
+function groupsReducer(groups: Group[], action: GroupAction): Group[] {
+  switch (action.type) {
+    case "add":
+      return [...groups, action.group];
+    case "update":
+      return groups.map((g) =>
+        g.id === action.id ? { ...g, ...action.updates } : g
+      );
+    case "delete":
+      return groups.filter((g) => g.id !== action.id);
+  }
+}
+
+type Props = {
+  initialTasks: Task[];
+  initialGroups: Group[];
+};
+
+export default function PersonalView({ initialTasks, initialGroups }: Props) {
+  const [optimisticTasks, dispatchTasks] = useOptimistic(initialTasks, tasksReducer);
+  const [optimisticGroups, dispatchGroups] = useOptimistic(initialGroups, groupsReducer);
   const [, startTransition] = useTransition();
 
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  function addTask(title: string, points?: number, description?: string, estimatedMinutes?: number) {
+  function addTask(title: string, points?: number, description?: string, estimatedMinutes?: number, groupId?: string) {
     const tempId = Math.random().toString(36).slice(2);
-    const task: Task = { id: tempId, title, description, points, estimatedMinutes, completed: false };
+    const task: Task = { id: tempId, title, description, points, estimatedMinutes, groupId, completed: false };
     startTransition(async () => {
-      dispatchOptimistic({ type: "add", task });
-      await addTaskAction(title, points, description, estimatedMinutes);
+      dispatchTasks({ type: "add", task });
+      await addTaskAction(title, points, description, estimatedMinutes, groupId);
     });
   }
 
   function toggleTask(id: string) {
     startTransition(async () => {
-      dispatchOptimistic({ type: "toggle", id });
+      dispatchTasks({ type: "toggle", id });
       await toggleTaskAction(id);
     });
   }
 
   function scheduleTask(id: string, start: string, end: string) {
     startTransition(async () => {
-      dispatchOptimistic({ type: "schedule", id, start, end, date: selectedDate });
+      dispatchTasks({ type: "schedule", id, start, end, date: selectedDate });
       await scheduleTaskAction(id, start, end, selectedDate);
     });
   }
 
   function descheduleTask(id: string) {
     startTransition(async () => {
-      dispatchOptimistic({ type: "deschedule", id });
+      dispatchTasks({ type: "deschedule", id });
       await descheduleTaskAction(id);
     });
   }
 
   function scheduleTaskAllDay(id: string) {
     startTransition(async () => {
-      dispatchOptimistic({ type: "scheduleAllDay", id, date: selectedDate });
+      dispatchTasks({ type: "scheduleAllDay", id, date: selectedDate });
       await scheduleTaskAllDayAction(id, selectedDate);
     });
   }
 
   function updateTask(
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
   ) {
     startTransition(async () => {
-      dispatchOptimistic({ type: "update", id, updates });
+      dispatchTasks({ type: "update", id, updates });
       await updateTaskAction(id, updates);
+    });
+  }
+
+  function handleCreateGroup(name: string, color: string) {
+    const tempId = Math.random().toString(36).slice(2);
+    startTransition(async () => {
+      dispatchGroups({ type: "add", group: { id: tempId, name, color } });
+      await createGroupAction(name, color);
+    });
+  }
+
+  function handleUpdateGroup(id: string, updates: Partial<Pick<Group, "name" | "color">>) {
+    startTransition(async () => {
+      dispatchGroups({ type: "update", id, updates });
+      await updateGroupAction(id, updates);
+    });
+  }
+
+  function handleDeleteGroup(id: string, deleteTasks: boolean) {
+    startTransition(async () => {
+      dispatchGroups({ type: "delete", id });
+      if (deleteTasks) {
+        dispatchTasks({ type: "deleteGroupTasks", groupId: id });
+      }
+      await deleteGroupAction(id, deleteTasks);
     });
   }
 
@@ -138,6 +193,7 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
       <div className={`flex-1 min-h-0 flex flex-col ${activeTab === "schedule" ? "" : "hidden"} md:flex`}>
         <SchedulePane
           tasks={optimisticTasks}
+          groups={optimisticGroups}
           onUpdateTask={updateTask}
           selectedDate={selectedDate}
           onChangeDate={setSelectedDate}
@@ -149,12 +205,16 @@ export default function PersonalView({ initialTasks }: { initialTasks: Task[] })
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
         <BacklogPane
           tasks={optimisticTasks}
+          groups={optimisticGroups}
           onAddTask={addTask}
           onToggleTask={toggleTask}
           onScheduleTask={scheduleTask}
           onScheduleTaskAllDay={scheduleTaskAllDay}
           onDescheduleTask={descheduleTask}
           onUpdateTask={updateTask}
+          onCreateGroup={handleCreateGroup}
+          onUpdateGroup={handleUpdateGroup}
+          onDeleteGroup={handleDeleteGroup}
         />
       </div>
     </div>
