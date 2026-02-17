@@ -19,3 +19,5 @@ Features:
     + Have Title, Description, etc
     + Can be Scheduled and Have RRULEs
     + Can have Notes attached
+    + Can be linked together
+    + Can be combined under a Supertask
