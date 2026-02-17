@@ -6,10 +6,11 @@ import { timeToMinutes } from "@/lib/time";
 type Props = {
   task: Task;
   rowHeight: number;
+  groupColor?: string;
   onOpenDetail: (id: string) => void;
 };
 
-export default function ScheduleTaskBlock({ task, rowHeight, onOpenDetail }: Props) {
+export default function ScheduleTaskBlock({ task, rowHeight, groupColor, onOpenDetail }: Props) {
   if (!task.scheduledStart || !task.scheduledEnd) return null;
 
   const startMin = timeToMinutes(task.scheduledStart);
@@ -27,17 +28,19 @@ export default function ScheduleTaskBlock({ task, rowHeight, onOpenDetail }: Pro
     e.dataTransfer.effectAllowed = "move";
   }
 
+  const bgColor = groupColor ?? "#3b82f6";
+
   return (
     <div
-      className="absolute left-16 right-2 rounded-md bg-blue-500 px-3 py-1 text-sm text-white shadow-sm overflow-hidden cursor-grab active:cursor-grabbing hover:bg-blue-600 transition-colors"
-      style={{ top, height }}
+      className="absolute left-16 right-2 rounded-md px-3 py-1 text-sm text-white shadow-sm overflow-hidden cursor-grab active:cursor-grabbing transition-opacity hover:opacity-90"
+      style={{ top, height, backgroundColor: bgColor }}
       draggable
       onDragStart={handleDragStart}
       onClick={() => onOpenDetail(task.id)}
     >
       <span className="font-medium">{task.title}</span>
       {task.points != null && (
-        <span className="ml-2 text-blue-200 text-xs">{task.points} pts</span>
+        <span className="ml-2 text-white/70 text-xs">{task.points} pts</span>
       )}
     </div>
   );

@@ -84,6 +84,9 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     (t) => t.scheduledDate === selectedDate && !t.scheduledStart && !t.completed
   );
 
+  const groupColorMap: Record<string, string> = {};
+  for (const g of groups) groupColorMap[g.id] = g.color;
+
   // Current time indicator (only shown when viewing today)
   const isToday = selectedDate === new Date().toISOString().slice(0, 10);
   const now = new Date();
@@ -211,22 +214,26 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
         {allDayTasks.length === 0 && !allDayDragOver && (
           <span className="text-xs text-zinc-300 dark:text-zinc-600 select-none">Drop tasks here</span>
         )}
-        {allDayTasks.map((task) => (
-          <button
-            key={task.id}
-            onClick={() => setSelectedTaskId(task.id)}
-            draggable
-            onDragStart={(e) => {
-              e.dataTransfer.setData("text/plain", task.id);
-              e.dataTransfer.setData("application/x-source", "allday");
-              e.dataTransfer.setData("application/x-estimate", String(task.estimatedMinutes ?? 60));
-              e.dataTransfer.effectAllowed = "move";
-            }}
-            className="rounded-full bg-blue-100 dark:bg-blue-500/20 px-3 py-0.5 text-xs font-medium text-blue-700 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-500/30 transition-colors cursor-grab active:cursor-grabbing"
-          >
-            {task.title}
-          </button>
-        ))}
+        {allDayTasks.map((task) => {
+          const color = task.groupId ? groupColorMap[task.groupId] : undefined;
+          return (
+            <button
+              key={task.id}
+              onClick={() => setSelectedTaskId(task.id)}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.setData("text/plain", task.id);
+                e.dataTransfer.setData("application/x-source", "allday");
+                e.dataTransfer.setData("application/x-estimate", String(task.estimatedMinutes ?? 60));
+                e.dataTransfer.effectAllowed = "move";
+              }}
+              className="rounded-full px-3 py-0.5 text-xs font-medium transition-colors cursor-grab active:cursor-grabbing hover:opacity-80 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300"
+              style={color ? { backgroundColor: color + "30", color } : undefined}
+            >
+              {task.title}
+            </button>
+          );
+        })}
       </div>
 
       {/* Scrollable time grid */}
@@ -276,7 +283,13 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
 
             {/* Scheduled task blocks */}
             {scheduledTasks.map((task) => (
-              <ScheduleTaskBlock key={task.id} task={task} rowHeight={rowHeight} onOpenDetail={setSelectedTaskId} />
+              <ScheduleTaskBlock
+                key={task.id}
+                task={task}
+                rowHeight={rowHeight}
+                groupColor={task.groupId ? groupColorMap[task.groupId] : undefined}
+                onOpenDetail={setSelectedTaskId}
+              />
             ))}
           </div>
         )}
