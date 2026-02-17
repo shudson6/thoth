@@ -8,9 +8,10 @@ type Props = {
   rowHeight: number;
   groupColor?: string;
   onOpenDetail: (id: string) => void;
+  onBlockDragStart?: (offsetMinutes: number) => void;
 };
 
-export default function ScheduleTaskBlock({ task, rowHeight, groupColor, onOpenDetail }: Props) {
+export default function ScheduleTaskBlock({ task, rowHeight, groupColor, onOpenDetail, onBlockDragStart }: Props) {
   if (!task.scheduledStart || !task.scheduledEnd) return null;
 
   const startMin = timeToMinutes(task.scheduledStart);
@@ -26,6 +27,8 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, onOpenD
     e.dataTransfer.setData("application/x-source", "schedule");
     e.dataTransfer.setData("application/x-estimate", String(duration));
     e.dataTransfer.effectAllowed = "move";
+    const offsetPx = e.clientY - e.currentTarget.getBoundingClientRect().top;
+    onBlockDragStart?.(offsetPx / pixelsPerMinute);
   }
 
   const bgColor = groupColor ?? "#3b82f6";

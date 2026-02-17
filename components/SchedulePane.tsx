@@ -49,6 +49,7 @@ function snapToGrid(minutes: number): number {
 
 export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const dragOffsetMinutes = useRef(0);
   const [rowHeight, setRowHeight] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [dragOverTime, setDragOverTime] = useState<number | null>(null);
@@ -111,7 +112,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     if (!containerRef.current || rowHeight <= 0) return 0;
     const rect = containerRef.current.getBoundingClientRect();
     const relY = e.clientY - rect.top + containerRef.current.scrollTop;
-    const minutes = (relY / totalHeight) * 24 * 60;
+    const minutes = (relY / totalHeight) * 24 * 60 - dragOffsetMinutes.current;
     return snapToGrid(Math.max(0, Math.min(minutes, 24 * 60 - SNAP_MINUTES)));
   }
 
@@ -137,6 +138,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     const endMin = Math.min(startMin + estimate, 24 * 60);
 
     onScheduleTask(taskId, minutesToTime(startMin), minutesToTime(endMin));
+    dragOffsetMinutes.current = 0;
     setDragOverTime(null);
   }
 
@@ -156,6 +158,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     const taskId = e.dataTransfer.getData("text/plain");
     if (!taskId) return;
     onScheduleTaskAllDay(taskId);
+    dragOffsetMinutes.current = 0;
     setAllDayDragOver(false);
   }
 
@@ -290,6 +293,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
                 rowHeight={rowHeight}
                 groupColor={task.groupId ? groupColorMap[task.groupId] : undefined}
                 onOpenDetail={setSelectedTaskId}
+                onBlockDragStart={(offset) => { dragOffsetMinutes.current = offset; }}
               />
             ))}
           </div>
