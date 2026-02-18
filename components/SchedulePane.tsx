@@ -170,6 +170,12 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     (t) => t.scheduledDate === selectedDate && !t.scheduledStart
   );
 
+  const dayTasks = tasks.filter(
+    (t) => t.scheduledDate === selectedDate && !t.cancelled && t.points != null
+  );
+  const totalPoints = dayTasks.reduce((sum, t) => sum + t.points!, 0);
+  const completedPoints = dayTasks.filter((t) => t.completed).reduce((sum, t) => sum + t.points!, 0);
+
   const groupColorMap: Record<string, string> = {};
   for (const g of groups) groupColorMap[g.id] = g.color;
 
@@ -309,6 +315,17 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
             </svg>
           </button>
         </div>
+        {totalPoints > 0 && (
+          <span
+            className={`text-xs font-medium tabular-nums transition-colors ${
+              completedPoints === totalPoints
+                ? "text-green-500 dark:text-green-400"
+                : "text-zinc-400 dark:text-zinc-500"
+            }`}
+          >
+            {completedPoints} / {totalPoints}
+          </span>
+        )}
         {!isToday && (
           <button
             onClick={() => onChangeDate(localDateStr())}
