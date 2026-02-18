@@ -323,7 +323,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
                 : "text-zinc-400 dark:text-zinc-500"
             }`}
           >
-            {completedPoints} / {totalPoints}
+            {completedPoints} / {totalPoints} pts
           </span>
         )}
         {!isToday && (
