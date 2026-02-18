@@ -7,11 +7,13 @@ type Props = {
   task: Task;
   rowHeight: number;
   groupColor?: string;
+  col?: number;
+  numCols?: number;
   onOpenDetail: (id: string) => void;
   onBlockDragStart?: (offsetMinutes: number) => void;
 };
 
-export default function ScheduleTaskBlock({ task, rowHeight, groupColor, onOpenDetail, onBlockDragStart }: Props) {
+export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0, numCols = 1, onOpenDetail, onBlockDragStart }: Props) {
   if (!task.scheduledStart || !task.scheduledEnd) return null;
 
   const startMin = timeToMinutes(task.scheduledStart);
@@ -36,11 +38,13 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, onOpenD
   }
 
   const bgColor = groupColor ?? "#3b82f6";
+  const left = `calc(4rem + ${col} / ${numCols} * (100% - 4rem))`;
+  const width = `calc((100% - 4rem) / ${numCols} - 4px)`;
 
   return (
     <div
-      className="absolute left-16 right-2 rounded-md px-3 py-1 text-sm text-white shadow-sm overflow-hidden cursor-grab active:cursor-grabbing transition-opacity hover:opacity-90"
-      style={{ top, height, backgroundColor: bgColor }}
+      className="absolute rounded-md px-3 py-1 text-sm text-white shadow-sm overflow-hidden cursor-grab active:cursor-grabbing transition-opacity hover:opacity-90"
+      style={{ top, height, left, width, backgroundColor: bgColor }}
       draggable
       onDragStart={handleDragStart}
       onClick={() => onOpenDetail(task.id)}

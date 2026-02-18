@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Task, Group } from "@/types/task";
 import ScheduleTaskBlock from "./ScheduleTaskBlock";
 import TaskDetailModal from "./TaskDetailModal";
@@ -73,6 +73,55 @@ function snapToGrid(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
+function computeLayout(tasks: Task[]): Map<string, { col: number; numCols: number }> {
+  if (tasks.length === 0) return new Map();
+
+  const sorted = [...tasks].sort((a, b) =>
+    timeToMinutes(a.scheduledStart!) - timeToMinutes(b.scheduledStart!)
+  );
+
+  // Greedy column assignment: place each task in the first column where
+  // the previous occupant has already ended.
+  const colEnds: number[] = [];
+  const taskCols = new Map<string, number>();
+  for (const task of sorted) {
+    const start = timeToMinutes(task.scheduledStart!);
+    const end   = timeToMinutes(task.scheduledEnd!);
+    let col = colEnds.findIndex((e) => e <= start);
+    if (col === -1) col = colEnds.length;
+    colEnds[col] = end;
+    taskCols.set(task.id, col);
+  }
+
+  // Find clusters (maximal groups of transitively overlapping tasks) and
+  // set numCols = max column index in the cluster + 1 for every member.
+  const result = new Map<string, { col: number; numCols: number }>();
+  const finalize = (from: number, to: number) => {
+    let maxCol = 0;
+    for (let i = from; i < to; i++) maxCol = Math.max(maxCol, taskCols.get(sorted[i].id)!);
+    const numCols = maxCol + 1;
+    for (let i = from; i < to; i++)
+      result.set(sorted[i].id, { col: taskCols.get(sorted[i].id)!, numCols });
+  };
+
+  let clusterStart = 0;
+  let clusterMaxEnd = 0;
+  for (let i = 0; i < sorted.length; i++) {
+    const start = timeToMinutes(sorted[i].scheduledStart!);
+    const end   = timeToMinutes(sorted[i].scheduledEnd!);
+    if (i === 0 || start >= clusterMaxEnd) {
+      if (i > 0) finalize(clusterStart, i);
+      clusterStart = i;
+      clusterMaxEnd = end;
+    } else {
+      clusterMaxEnd = Math.max(clusterMaxEnd, end);
+    }
+  }
+  finalize(clusterStart, sorted.length);
+
+  return result;
+}
+
 export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup, onSetRecurrence, onCreateException, onUpdateAllOccurrences, onCancelOccurrence, onCopyTask, onCopyTaskAllDay }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragOffsetMinutes = useRef(0);
@@ -130,6 +179,8 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     }, 60_000);
     return () => clearInterval(interval);
   }, [isToday]);
+
+  const layout = useMemo(() => computeLayout(scheduledTasks), [scheduledTasks]);
 
   const totalHeight = rowHeight * 24;
   const timeIndicatorTop = rowHeight > 0 ? (timeOffset / 60) * rowHeight : 0;
@@ -345,16 +396,21 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
             )}
 
             {/* Scheduled task blocks */}
-            {scheduledTasks.map((task) => (
-              <ScheduleTaskBlock
-                key={task.id}
-                task={task}
-                rowHeight={rowHeight}
-                groupColor={task.groupId ? groupColorMap[task.groupId] : undefined}
-                onOpenDetail={setSelectedTaskId}
-                onBlockDragStart={(offset) => { dragOffsetMinutes.current = offset; }}
-              />
-            ))}
+            {scheduledTasks.map((task) => {
+              const { col, numCols } = layout.get(task.id) ?? { col: 0, numCols: 1 };
+              return (
+                <ScheduleTaskBlock
+                  key={task.id}
+                  task={task}
+                  rowHeight={rowHeight}
+                  groupColor={task.groupId ? groupColorMap[task.groupId] : undefined}
+                  col={col}
+                  numCols={numCols}
+                  onOpenDetail={setSelectedTaskId}
+                  onBlockDragStart={(offset) => { dragOffsetMinutes.current = offset; }}
+                />
+              );
+            })}
           </div>
         )}
         {selectedTask && (
