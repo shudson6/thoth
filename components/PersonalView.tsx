@@ -1,9 +1,10 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useMemo, useState, useTransition } from "react";
 import { Task, Group } from "@/types/task";
 import SchedulePane from "./SchedulePane";
 import BacklogPane from "./BacklogPane";
+import { expandForDate } from "@/lib/recurrence";
 import {
   addTask as addTaskAction,
   toggleTask as toggleTaskAction,
@@ -14,6 +15,10 @@ import {
   createGroup as createGroupAction,
   updateGroup as updateGroupAction,
   deleteGroup as deleteGroupAction,
+  setRecurrence as setRecurrenceAction,
+  removeRecurrence as removeRecurrenceAction,
+  createException as createExceptionAction,
+  updateAllOccurrences as updateAllOccurrencesAction,
 } from "@/app/actions";
 
 type TaskAction =
@@ -23,7 +28,12 @@ type TaskAction =
   | { type: "scheduleAllDay"; id: string; date: string }
   | { type: "deschedule"; id: string }
   | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">> }
-  | { type: "deleteGroupTasks"; groupId: string };
+  | { type: "deleteGroupTasks"; groupId: string }
+  | { type: "setRecurrence"; id: string; rule: string }
+  | { type: "removeRecurrence"; id: string }
+  | { type: "addException"; exception: Task }
+  | { type: "updateMaster"; id: string; updates: Partial<Task> }
+  | { type: "cancelOccurrence"; parentId: string; originalDate: string };
 
 function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
   switch (action.type) {
@@ -57,6 +67,40 @@ function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
       );
     case "deleteGroupTasks":
       return tasks.filter((t) => t.groupId !== action.groupId);
+    case "setRecurrence":
+      return tasks.map((t) =>
+        t.id === action.id ? { ...t, recurrenceRule: action.rule } : t
+      );
+    case "removeRecurrence":
+      return tasks
+        .filter((t) => t.recurringParentId !== action.id)
+        .map((t) => t.id === action.id ? { ...t, recurrenceRule: undefined } : t);
+    case "addException":
+      return [
+        ...tasks.filter((t) =>
+          !(t.recurringParentId === action.exception.recurringParentId &&
+            t.originalDate === action.exception.originalDate)
+        ),
+        action.exception,
+      ];
+    case "updateMaster":
+      return tasks.map((t) =>
+        t.id === action.id ? { ...t, ...action.updates } : t
+      );
+    case "cancelOccurrence":
+      return [
+        ...tasks.filter((t) =>
+          !(t.recurringParentId === action.parentId && t.originalDate === action.originalDate)
+        ),
+        {
+          id: `cancelled-${action.parentId}-${action.originalDate}`,
+          title: "",
+          completed: false,
+          cancelled: true,
+          recurringParentId: action.parentId,
+          originalDate: action.originalDate,
+        } as Task,
+      ];
   }
 }
 
@@ -90,6 +134,11 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
 
   const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
 
+  const expandedTasks = useMemo(
+    () => expandForDate(optimisticTasks, selectedDate),
+    [optimisticTasks, selectedDate]
+  );
+
   function addTask(title: string, points?: number, description?: string, estimatedMinutes?: number, groupId?: string) {
     const tempId = Math.random().toString(36).slice(2);
     const task: Task = { id: tempId, title, description, points, estimatedMinutes, groupId, completed: false };
@@ -100,6 +149,12 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
   }
 
   function toggleTask(id: string) {
+    // Check if this is a virtual recurring instance
+    const task = expandedTasks.find((t) => t.id === id);
+    if (task?.isVirtualRecurrence) {
+      handleCreateException(id, task.scheduledDate!, { completed: !task.completed });
+      return;
+    }
     startTransition(async () => {
       dispatchTasks({ type: "toggle", id });
       await toggleTaskAction(id);
@@ -152,6 +207,84 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
       await updateTaskAction(id, updates);
     });
   }
+
+  // --- Recurrence callbacks ---
+
+  function handleSetRecurrence(taskId: string, rule: string | null) {
+    if (rule) {
+      startTransition(async () => {
+        dispatchTasks({ type: "setRecurrence", id: taskId, rule });
+        await setRecurrenceAction(taskId, rule);
+      });
+    } else {
+      startTransition(async () => {
+        dispatchTasks({ type: "removeRecurrence", id: taskId });
+        await removeRecurrenceAction(taskId);
+      });
+    }
+  }
+
+  function handleCreateException(
+    parentId: string,
+    originalDate: string,
+    fields: Parameters<typeof createExceptionAction>[2]
+  ) {
+    const tempId = Math.random().toString(36).slice(2);
+    const master = optimisticTasks.find((t) => t.id === parentId);
+    if (!master) return;
+    const exception: Task = {
+      ...master,
+      id: tempId,
+      recurringParentId: parentId,
+      originalDate,
+      recurrenceRule: undefined,
+      isVirtualRecurrence: undefined,
+      title: fields.title ?? master.title,
+      description: (fields.description ?? master.description) ?? undefined,
+      points: (fields.points ?? master.points) ?? undefined,
+      estimatedMinutes: (fields.estimatedMinutes ?? master.estimatedMinutes) ?? undefined,
+      groupId: (fields.groupId ?? master.groupId) ?? undefined,
+      scheduledDate: fields.scheduledDate ?? master.scheduledDate,
+      scheduledStart: "scheduledStart" in fields ? (fields.scheduledStart ?? undefined) : master.scheduledStart,
+      scheduledEnd: "scheduledEnd" in fields ? (fields.scheduledEnd ?? undefined) : master.scheduledEnd,
+      completed: fields.completed ?? master.completed,
+      cancelled: fields.cancelled ?? undefined,
+    };
+    startTransition(async () => {
+      dispatchTasks({ type: "addException", exception });
+      await createExceptionAction(parentId, originalDate, fields);
+    });
+  }
+
+  function handleUpdateAllOccurrences(
+    masterId: string,
+    updates: Parameters<typeof updateAllOccurrencesAction>[1]
+  ) {
+    // Coerce nullable fields to undefined for the optimistic Task type
+    const taskUpdates: Partial<Task> = {
+      ...(updates.title              !== undefined && { title:            updates.title }),
+      ...(updates.description        !== undefined && { description:      updates.description ?? undefined }),
+      ...(updates.points             !== undefined && { points:           updates.points ?? undefined }),
+      ...(updates.estimatedMinutes   !== undefined && { estimatedMinutes: updates.estimatedMinutes ?? undefined }),
+      ...(updates.groupId            !== undefined && { groupId:          updates.groupId ?? undefined }),
+      ...(updates.scheduledStart     !== undefined && { scheduledStart:   updates.scheduledStart ?? undefined }),
+      ...(updates.scheduledEnd       !== undefined && { scheduledEnd:     updates.scheduledEnd ?? undefined }),
+      ...(updates.recurrenceRule     !== undefined && { recurrenceRule:   updates.recurrenceRule }),
+    };
+    startTransition(async () => {
+      dispatchTasks({ type: "updateMaster", id: masterId, updates: taskUpdates });
+      await updateAllOccurrencesAction(masterId, updates);
+    });
+  }
+
+  function handleCancelOccurrence(parentId: string, originalDate: string) {
+    startTransition(async () => {
+      dispatchTasks({ type: "cancelOccurrence", parentId, originalDate });
+      await createExceptionAction(parentId, originalDate, { cancelled: true });
+    });
+  }
+
+  // --- Group callbacks ---
 
   function handleCreateGroup(name: string, color: string) {
     const tempId = Math.random().toString(36).slice(2);
@@ -208,7 +341,7 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
 
       <div className={`flex-1 min-h-0 flex flex-col ${activeTab === "schedule" ? "" : "hidden"} md:flex`}>
         <SchedulePane
-          tasks={optimisticTasks}
+          tasks={expandedTasks}
           groups={optimisticGroups}
           onUpdateTask={updateTask}
           selectedDate={selectedDate}
@@ -218,6 +351,10 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
           onDescheduleTask={descheduleTask}
           onRescheduleTask={rescheduleTask}
           onCreateGroup={handleCreateGroup}
+          onSetRecurrence={handleSetRecurrence}
+          onCreateException={handleCreateException}
+          onUpdateAllOccurrences={handleUpdateAllOccurrences}
+          onCancelOccurrence={handleCancelOccurrence}
         />
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>

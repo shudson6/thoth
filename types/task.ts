@@ -9,6 +9,15 @@ export type Task = {
   scheduledEnd?: string;   // "HH:MM" e.g. "10:30"
   estimatedMinutes?: number;
   groupId?: string;
+
+  // Recurrence (persisted)
+  recurrenceRule?: string;     // RRULE string, present on master tasks
+  recurringParentId?: string;  // Present on exception rows
+  originalDate?: string;       // Date the exception replaces ("YYYY-MM-DD")
+  cancelled?: boolean;         // true = this occurrence is suppressed
+
+  // Client-side only — never sent to the server
+  isVirtualRecurrence?: true;  // Expanded from master; no DB row yet
 };
 
 export type Group = {

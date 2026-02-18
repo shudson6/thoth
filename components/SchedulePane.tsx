@@ -6,6 +6,19 @@ import ScheduleTaskBlock from "./ScheduleTaskBlock";
 import TaskDetailModal from "./TaskDetailModal";
 import { timeToMinutes, minutesToTime } from "@/lib/time";
 
+type ExceptionFields = {
+  title?: string;
+  description?: string | null;
+  points?: number | null;
+  estimatedMinutes?: number | null;
+  groupId?: string | null;
+  scheduledDate?: string;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  completed?: boolean;
+  cancelled?: boolean;
+};
+
 type Props = {
   tasks: Task[];
   groups: Group[];
@@ -20,6 +33,10 @@ type Props = {
   onDescheduleTask: (id: string) => void;
   onRescheduleTask?: (id: string, date: string, start: string | undefined, end: string | undefined) => void;
   onCreateGroup: (name: string, color: string) => void;
+  onSetRecurrence?: (taskId: string, rule: string | null) => void;
+  onCreateException?: (parentId: string, originalDate: string, fields: ExceptionFields) => void;
+  onUpdateAllOccurrences?: (masterId: string, updates: Partial<Task>) => void;
+  onCancelOccurrence?: (parentId: string, originalDate: string) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -47,7 +64,7 @@ function snapToGrid(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
-export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup }: Props) {
+export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup, onSetRecurrence, onCreateException, onUpdateAllOccurrences, onCancelOccurrence }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragOffsetMinutes = useRef(0);
   const [rowHeight, setRowHeight] = useState(0);
@@ -128,16 +145,31 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
 
   function handleGridDrop(e: React.DragEvent) {
     e.preventDefault();
-    const taskId = e.dataTransfer.getData("text/plain");
+    const taskId    = e.dataTransfer.getData("text/plain");
     if (!taskId) return;
 
     const estimateStr = e.dataTransfer.getData("application/x-estimate");
-    const estimate = estimateStr ? Number(estimateStr) : 60;
+    const estimate  = estimateStr ? Number(estimateStr) : 60;
+    const isVirtual = e.dataTransfer.getData("application/x-is-virtual") === "1";
+    const isException = e.dataTransfer.getData("application/x-is-exception") === "1";
+    const origDate  = e.dataTransfer.getData("application/x-original-date");
+    const parentId  = e.dataTransfer.getData("application/x-parent-id");
 
     const startMin = getMinutesFromY(e);
     const endMin = Math.min(startMin + estimate, 24 * 60);
+    const newStart = minutesToTime(startMin);
+    const newEnd   = minutesToTime(endMin);
 
-    onScheduleTask(taskId, minutesToTime(startMin), minutesToTime(endMin));
+    if ((isVirtual || isException) && onCreateException && origDate && parentId) {
+      onCreateException(parentId, origDate, {
+        scheduledDate:  selectedDate,
+        scheduledStart: newStart,
+        scheduledEnd:   newEnd,
+      });
+    } else {
+      onScheduleTask(taskId, newStart, newEnd);
+    }
+
     dragOffsetMinutes.current = 0;
     setDragOverTime(null);
   }
@@ -305,8 +337,20 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
             onClose={() => setSelectedTaskId(null)}
             onUpdate={onUpdateTask}
             onCreateGroup={onCreateGroup}
-            onDeschedule={onDescheduleTask}
+            onDeschedule={(id) => {
+              const t = tasks.find((t) => t.id === id);
+              if (t?.isVirtualRecurrence) {
+                onCancelOccurrence?.(t.id, t.scheduledDate!);
+              } else if (t?.recurringParentId) {
+                onCancelOccurrence?.(t.recurringParentId, t.originalDate!);
+              } else {
+                onDescheduleTask(id);
+              }
+            }}
             onReschedule={onRescheduleTask}
+            onSetRecurrence={onSetRecurrence}
+            onCreateException={onCreateException}
+            onUpdateAllOccurrences={onUpdateAllOccurrences}
           />
         )}
       </div>

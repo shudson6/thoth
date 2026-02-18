@@ -3,7 +3,23 @@
 import { useState, useEffect } from "react";
 import { Task, Group } from "@/types/task";
 import { formatEstimate, timeToMinutes, minutesToTime } from "@/lib/time";
+import { describeRRule } from "@/lib/recurrence";
 import GroupPicker from "./GroupPicker";
+import RecurrencePicker from "./RecurrencePicker";
+import RecurrenceScopeDialog from "./RecurrenceScopeDialog";
+
+type ExceptionFields = {
+  title?: string;
+  description?: string | null;
+  points?: number | null;
+  estimatedMinutes?: number | null;
+  groupId?: string | null;
+  scheduledDate?: string;
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  completed?: boolean;
+  cancelled?: boolean;
+};
 
 type Props = {
   task: Task;
@@ -21,6 +37,9 @@ type Props = {
     start: string | undefined,
     end: string | undefined
   ) => void;
+  onSetRecurrence?: (taskId: string, rule: string | null) => void;
+  onCreateException?: (parentId: string, originalDate: string, fields: ExceptionFields) => void;
+  onUpdateAllOccurrences?: (masterId: string, updates: Partial<Task>) => void;
 };
 
 function formatScheduledDate(dateStr: string): string {
@@ -35,17 +54,28 @@ function formatTime(t: string): string {
   return m === 0 ? `${hour} ${suffix}` : `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
 }
 
-export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCreateGroup, onDeschedule, onReschedule }: Props) {
+export default function TaskDetailModal({
+  task, groups, onClose, onUpdate, onCreateGroup,
+  onDeschedule, onReschedule, onSetRecurrence, onCreateException, onUpdateAllOccurrences,
+}: Props) {
   const [editing, setEditing] = useState(false);
+  const [showScopeDialog, setShowScopeDialog] = useState(false);
+
+  // Metadata fields
   const [title, setTitle] = useState(task.title);
   const [description, setDescription] = useState(task.description ?? "");
   const [points, setPoints] = useState(task.points?.toString() ?? "");
   const [estimate, setEstimate] = useState(task.estimatedMinutes?.toString() ?? "");
   const [groupId, setGroupId] = useState<string | null>(task.groupId ?? null);
+
+  // Schedule fields
   const [scheduledDate, setScheduledDate] = useState(task.scheduledDate ?? "");
   const [scheduledStart, setScheduledStart] = useState(task.scheduledStart ?? "");
   const [scheduledEnd, setScheduledEnd] = useState(task.scheduledEnd ?? "");
   const [isAllDay, setIsAllDay] = useState(!task.scheduledStart && !task.scheduledEnd);
+
+  // Recurrence field
+  const [recurrenceRule, setRecurrenceRule] = useState<string | null>(task.recurrenceRule ?? null);
 
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
@@ -65,38 +95,9 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
     setScheduledStart(task.scheduledStart ?? "");
     setScheduledEnd(task.scheduledEnd ?? "");
     setIsAllDay(!task.scheduledStart && !task.scheduledEnd);
+    setRecurrenceRule(task.recurrenceRule ?? null);
+    setShowScopeDialog(false);
     setEditing(true);
-  }
-
-  function handleSave() {
-    const updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">> = {};
-    const trimmedTitle = title.trim();
-    if (trimmedTitle && trimmedTitle !== task.title) updates.title = trimmedTitle;
-    if (description !== (task.description ?? "")) updates.description = description || undefined;
-    const parsedPoints = points ? Number(points) : undefined;
-    if (parsedPoints !== task.points) updates.points = parsedPoints;
-    const parsedEstimate = estimate ? Number(estimate) : undefined;
-    if (parsedEstimate !== task.estimatedMinutes) updates.estimatedMinutes = parsedEstimate;
-    const newGroupId = groupId ?? undefined;
-    if (newGroupId !== task.groupId) updates.groupId = newGroupId;
-    if (Object.keys(updates).length > 0) onUpdate(task.id, updates);
-
-    if (onReschedule && scheduledDate) {
-      const newStart = isAllDay ? undefined : scheduledStart || undefined;
-      const newEnd = isAllDay ? undefined : scheduledEnd || undefined;
-      const dateChanged = scheduledDate !== task.scheduledDate;
-      const startChanged = newStart !== task.scheduledStart;
-      const endChanged = newEnd !== task.scheduledEnd;
-      if (dateChanged || startChanged || endChanged) {
-        onReschedule(task.id, scheduledDate, newStart, newEnd);
-      }
-    }
-
-    setEditing(false);
-  }
-
-  function handleCancel() {
-    setEditing(false);
   }
 
   function handleScheduledStartChange(newStart: string) {
@@ -120,7 +121,108 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
     setEstimate(newEstimate);
   }
 
+  // Collect all pending changes without committing them
+  function collectChanges() {
+    const metaUpdates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">> = {};
+    const trimmedTitle = title.trim();
+    if (trimmedTitle && trimmedTitle !== task.title) metaUpdates.title = trimmedTitle;
+    if (description !== (task.description ?? "")) metaUpdates.description = description || undefined;
+    const parsedPoints = points ? Number(points) : undefined;
+    if (parsedPoints !== task.points) metaUpdates.points = parsedPoints;
+    const parsedEstimate = estimate ? Number(estimate) : undefined;
+    if (parsedEstimate !== task.estimatedMinutes) metaUpdates.estimatedMinutes = parsedEstimate;
+    const newGroupId = groupId ?? undefined;
+    if (newGroupId !== task.groupId) metaUpdates.groupId = newGroupId;
+
+    const newStart = isAllDay ? undefined : scheduledStart || undefined;
+    const newEnd   = isAllDay ? undefined : scheduledEnd   || undefined;
+    const scheduleChanged =
+      scheduledDate !== (task.scheduledDate ?? "") ||
+      newStart !== task.scheduledStart ||
+      newEnd   !== task.scheduledEnd;
+
+    const ruleChanged = recurrenceRule !== (task.recurrenceRule ?? null);
+
+    return { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged };
+  }
+
+  function handleSave() {
+    const isRecurring = !!(task.recurrenceRule || task.recurringParentId || task.isVirtualRecurrence);
+
+    if (isRecurring) {
+      setShowScopeDialog(true);
+      return;
+    }
+
+    // Non-recurring: commit immediately
+    const { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged } = collectChanges();
+    if (Object.keys(metaUpdates).length > 0) onUpdate(task.id, metaUpdates);
+    if (scheduleChanged && onReschedule) {
+      onReschedule(task.id, scheduledDate, newStart, newEnd);
+    }
+    if (ruleChanged && onSetRecurrence) {
+      onSetRecurrence(task.id, recurrenceRule);
+    }
+    setEditing(false);
+  }
+
+  function handleScopeThisOnly() {
+    const { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged } = collectChanges();
+
+    // Determine masterId and occurrenceDate
+    const masterId = task.recurringParentId ?? task.id;
+    const occurrenceDate = task.originalDate ?? task.scheduledDate!;
+
+    const fields: ExceptionFields = {
+      ...metaUpdates,
+      estimatedMinutes: metaUpdates.estimatedMinutes,
+    };
+    if (scheduleChanged) {
+      fields.scheduledDate  = scheduledDate;
+      fields.scheduledStart = newStart ?? null;
+      fields.scheduledEnd   = newEnd   ?? null;
+    }
+    // Note: recurrence rule changes are master-level; "this only" ignores them
+
+    if (onCreateException) {
+      onCreateException(masterId, occurrenceDate, fields);
+    }
+    setEditing(false);
+    onClose();
+  }
+
+  function handleScopeAll() {
+    const { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged } = collectChanges();
+    const masterId = task.recurringParentId ?? task.id;
+
+    const masterUpdates: Partial<Task> = { ...metaUpdates };
+    if (scheduleChanged) {
+      masterUpdates.scheduledStart = newStart;
+      masterUpdates.scheduledEnd   = newEnd;
+    }
+    if (Object.keys(masterUpdates).length > 0 && onUpdateAllOccurrences) {
+      onUpdateAllOccurrences(masterId, masterUpdates);
+    }
+    if (scheduleChanged && onReschedule) {
+      // Reschedule the master (its scheduledDate = first-occurrence date; updating
+      // to the exception date would break the template, so only update times)
+      onReschedule(masterId, task.scheduledDate ?? scheduledDate, newStart, newEnd);
+    }
+    if (ruleChanged && onSetRecurrence) {
+      onSetRecurrence(masterId, recurrenceRule);
+    }
+    setEditing(false);
+    onClose();
+  }
+
+  function handleCancel() {
+    setShowScopeDialog(false);
+    setEditing(false);
+  }
+
   const taskGroup = groups.find((g) => g.id === task.groupId);
+  const isRecurring = !!(task.recurrenceRule || task.recurringParentId || task.isVirtualRecurrence);
+  const masterId = task.recurringParentId ?? task.id;
 
   return (
     <div
@@ -139,12 +241,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
               className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
               title="Edit task"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className="w-4 h-4"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
                 <path d="M2.695 14.763l-1.262 3.154a.5.5 0 00.65.65l3.155-1.262a4 4 0 001.343-.885L17.5 5.5a2.121 2.121 0 00-3-3L3.58 13.42a4 4 0 00-.885 1.343z" />
               </svg>
             </button>
@@ -154,12 +251,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
             className="text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 transition-colors"
             title="Close"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              viewBox="0 0 20 20"
-              fill="currentColor"
-              className="w-4 h-4"
-            >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-4 h-4">
               <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
             </svg>
           </button>
@@ -168,9 +260,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
         {editing ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                Title
-              </label>
+              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Title</label>
               <input
                 type="text"
                 value={title}
@@ -180,9 +270,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                Description
-              </label>
+              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Description</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
@@ -192,9 +280,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                  Points
-                </label>
+                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Points</label>
                 <input
                   type="number"
                   value={points}
@@ -204,9 +290,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                  Estimate (min)
-                </label>
+                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Estimate (min)</label>
                 <input
                   type="number"
                   value={estimate}
@@ -218,9 +302,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
             </div>
             {onReschedule && task.scheduledDate && (
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                  Schedule
-                </label>
+                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400">Schedule</label>
                 <input
                   type="date"
                   value={scheduledDate}
@@ -238,9 +320,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                 </label>
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                      Start
-                    </label>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Start</label>
                     <input
                       type="time"
                       value={scheduledStart}
@@ -250,9 +330,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                      End
-                    </label>
+                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">End</label>
                     <input
                       type="time"
                       value={scheduledEnd}
@@ -265,9 +343,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">
-                Group
-              </label>
+              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Group</label>
               <GroupPicker
                 groups={groups}
                 selectedGroupId={groupId}
@@ -275,20 +351,38 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                 onCreateGroup={onCreateGroup}
               />
             </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                onClick={handleCancel}
-                className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSave}
-                className="rounded-md bg-blue-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-600 transition-colors"
-              >
-                Save
-              </button>
-            </div>
+            {onSetRecurrence && task.scheduledDate && (
+              <div>
+                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Repeat</label>
+                <RecurrencePicker
+                  value={recurrenceRule}
+                  anchorDate={task.scheduledDate}
+                  onChange={setRecurrenceRule}
+                />
+              </div>
+            )}
+            {showScopeDialog ? (
+              <RecurrenceScopeDialog
+                onThisOnly={handleScopeThisOnly}
+                onAll={handleScopeAll}
+                onCancel={() => setShowScopeDialog(false)}
+              />
+            ) : (
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  onClick={handleCancel}
+                  className="rounded-md px-3 py-1.5 text-xs font-medium text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  className="rounded-md bg-blue-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-blue-600 transition-colors"
+                >
+                  Save
+                </button>
+              </div>
+            )}
           </div>
         ) : (
           <div className="space-y-3 pr-12">
@@ -297,9 +391,7 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
             </h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">
               {task.description || (
-                <span className="italic text-zinc-400 dark:text-zinc-500">
-                  No description
-                </span>
+                <span className="italic text-zinc-400 dark:text-zinc-500">No description</span>
               )}
             </p>
             <div className="flex gap-2 flex-wrap">
@@ -336,12 +428,26 @@ export default function TaskDetailModal({ task, groups, onClose, onUpdate, onCre
                 </span>
               </div>
             )}
+            {isRecurring && (
+              <div className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3.5 h-3.5 shrink-0">
+                  <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
+                </svg>
+                <span>
+                  {task.recurrenceRule
+                    ? describeRRule(task.recurrenceRule)
+                    : task.recurringParentId
+                    ? "Recurring (this occurrence)"
+                    : "Recurring"}
+                </span>
+              </div>
+            )}
             {task.scheduledDate && onDeschedule && (
               <button
                 onClick={() => { onDeschedule(task.id); onClose(); }}
                 className="text-xs font-medium text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
               >
-                Move to Backlog
+                {isRecurring ? "Remove this occurrence" : "Move to Backlog"}
               </button>
             )}
           </div>

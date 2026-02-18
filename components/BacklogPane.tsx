@@ -37,7 +37,7 @@ export default function BacklogPane({
     ? tasks.find((t) => t.id === selectedTaskId) ?? null
     : null;
 
-  const backlogTasks = tasks.filter((t) => !t.scheduledDate);
+  const backlogTasks = tasks.filter((t) => !t.scheduledDate && !t.cancelled);
   const incomplete = backlogTasks.filter((t) => !t.completed);
   const completed = backlogTasks.filter((t) => t.completed);
 
