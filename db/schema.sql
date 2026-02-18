@@ -55,8 +55,8 @@ CREATE TABLE tasks (
         (scheduled_date IS NOT NULL AND scheduled_start IS NOT NULL AND scheduled_end IS NOT NULL)
     ),
 
-    -- End must be after start
-    CONSTRAINT scheduled_end_after_start CHECK (scheduled_end > scheduled_start),
+    -- End must be at or after start (equal = zero-duration/instant task)
+    CONSTRAINT scheduled_end_after_start CHECK (scheduled_end >= scheduled_start),
 
     -- Exception instances must reference a parent and specify which date they replace
     CONSTRAINT exception_fields_together CHECK (

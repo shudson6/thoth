@@ -34,7 +34,7 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
       setEnd(minutesToTime(Math.min(newStartMin + task.estimatedMinutes, 24 * 60 - 1)));
     } else {
       const delta = newStartMin - oldStartMin;
-      const newEndMin = Math.min(Math.max(timeToMinutes(end) + delta, newStartMin + 15), 24 * 60 - 1);
+      const newEndMin = Math.min(Math.max(timeToMinutes(end) + delta, newStartMin), 24 * 60 - 1);
       setEnd(minutesToTime(newEndMin));
     }
     setStart(newStart);

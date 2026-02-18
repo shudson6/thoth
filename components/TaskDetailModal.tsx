@@ -107,7 +107,7 @@ export default function TaskDetailModal({
       setScheduledEnd(minutesToTime(Math.min(newStartMin + parsedEstimate, 24 * 60 - 1)));
     } else if (scheduledEnd) {
       const delta = newStartMin - timeToMinutes(scheduledStart);
-      const newEndMin = Math.min(Math.max(timeToMinutes(scheduledEnd) + delta, newStartMin + 15), 24 * 60 - 1);
+      const newEndMin = Math.min(Math.max(timeToMinutes(scheduledEnd) + delta, newStartMin), 24 * 60 - 1);
       setScheduledEnd(minutesToTime(newEndMin));
     }
     setScheduledStart(newStart);
