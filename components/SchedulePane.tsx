@@ -49,10 +49,17 @@ function formatHour(h: number): string {
   return `${display} ${suffix}`;
 }
 
+function localDateStr(d: Date = new Date()): string {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function shiftDate(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + days);
-  return d.toISOString().slice(0, 10);
+  return localDateStr(d);
 }
 
 function formatDate(dateStr: string): string {
@@ -107,7 +114,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
   for (const g of groups) groupColorMap[g.id] = g.color;
 
   // Current time indicator (only shown when viewing today)
-  const isToday = selectedDate === new Date().toISOString().slice(0, 10);
+  const isToday = selectedDate === localDateStr();
   const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const [timeOffset, setTimeOffset] = useState(currentMinutes);
@@ -227,7 +234,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
         </div>
         {!isToday && (
           <button
-            onClick={() => onChangeDate(new Date().toISOString().slice(0, 10))}
+            onClick={() => onChangeDate(localDateStr())}
             className="text-xs font-medium text-blue-500 hover:text-blue-600 px-2 py-1 rounded hover:bg-blue-50 dark:hover:bg-blue-500/10"
           >
             Today

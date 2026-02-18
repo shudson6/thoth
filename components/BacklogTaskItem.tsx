@@ -14,7 +14,10 @@ type Props = {
 
 export default function BacklogTaskItem({ task, onToggle, onSchedule, onScheduleAllDay, onOpenDetail }: Props) {
   const [showPicker, setShowPicker] = useState(false);
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [date, setDate] = useState(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  });
   const [isAllDay, setIsAllDay] = useState(false);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState(() =>
