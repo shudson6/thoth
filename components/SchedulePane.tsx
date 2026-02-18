@@ -37,6 +37,8 @@ type Props = {
   onCreateException?: (parentId: string, originalDate: string, fields: ExceptionFields) => void;
   onUpdateAllOccurrences?: (masterId: string, updates: Partial<Task>) => void;
   onCancelOccurrence?: (parentId: string, originalDate: string) => void;
+  onCopyTask?: (sourceId: string, date: string, start: string, end: string) => void;
+  onCopyTaskAllDay?: (sourceId: string, date: string) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -71,13 +73,14 @@ function snapToGrid(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
-export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup, onSetRecurrence, onCreateException, onUpdateAllOccurrences, onCancelOccurrence }: Props) {
+export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup, onSetRecurrence, onCreateException, onUpdateAllOccurrences, onCancelOccurrence, onCopyTask, onCopyTaskAllDay }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragOffsetMinutes = useRef(0);
   const [rowHeight, setRowHeight] = useState(0);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [dragOverTime, setDragOverTime] = useState<number | null>(null);
   const [allDayDragOver, setAllDayDragOver] = useState(false);
+  const [dragCopyMode, setDragCopyMode] = useState(false);
 
   const selectedTask = selectedTaskId
     ? tasks.find((t) => t.id === selectedTaskId) ?? null
@@ -142,12 +145,15 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
 
   function handleGridDragOver(e: React.DragEvent) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+    const isCopy = e.ctrlKey || e.metaKey;
+    e.dataTransfer.dropEffect = isCopy ? "copy" : "move";
+    setDragCopyMode(isCopy);
     setDragOverTime(getMinutesFromY(e));
   }
 
   function handleGridDragLeave() {
     setDragOverTime(null);
+    setDragCopyMode(false);
   }
 
   function handleGridDrop(e: React.DragEvent) {
@@ -155,6 +161,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     const taskId    = e.dataTransfer.getData("text/plain");
     if (!taskId) return;
 
+    const isCopy = e.ctrlKey || e.metaKey;
     const estimateStr = e.dataTransfer.getData("application/x-estimate");
     const estimate  = estimateStr ? Number(estimateStr) : 60;
     const isVirtual = e.dataTransfer.getData("application/x-is-virtual") === "1";
@@ -167,7 +174,9 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     const newStart = minutesToTime(startMin);
     const newEnd   = minutesToTime(endMin);
 
-    if ((isVirtual || isException) && onCreateException && origDate && parentId) {
+    if (isCopy) {
+      onCopyTask?.(taskId, selectedDate, newStart, newEnd);
+    } else if ((isVirtual || isException) && onCreateException && origDate && parentId) {
       onCreateException(parentId, origDate, {
         scheduledDate:  selectedDate,
         scheduledStart: newStart,
@@ -179,26 +188,35 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
 
     dragOffsetMinutes.current = 0;
     setDragOverTime(null);
+    setDragCopyMode(false);
   }
 
   // --- DnD helpers for all-day strip ---
   function handleAllDayDragOver(e: React.DragEvent) {
     e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+    const isCopy = e.ctrlKey || e.metaKey;
+    e.dataTransfer.dropEffect = isCopy ? "copy" : "move";
+    setDragCopyMode(isCopy);
     setAllDayDragOver(true);
   }
 
   function handleAllDayDragLeave() {
     setAllDayDragOver(false);
+    setDragCopyMode(false);
   }
 
   function handleAllDayDrop(e: React.DragEvent) {
     e.preventDefault();
     const taskId = e.dataTransfer.getData("text/plain");
     if (!taskId) return;
-    onScheduleTaskAllDay(taskId);
+    if (e.ctrlKey || e.metaKey) {
+      onCopyTaskAllDay?.(taskId, selectedDate);
+    } else {
+      onScheduleTaskAllDay(taskId);
+    }
     dragOffsetMinutes.current = 0;
     setAllDayDragOver(false);
+    setDragCopyMode(false);
   }
 
   const dragPreviewTop = dragOverTime !== null && rowHeight > 0
@@ -245,7 +263,9 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
       {/* All-day strip */}
       <div
         className={`shrink-0 border-b px-4 py-2 min-h-[40px] flex items-center gap-2 flex-wrap transition-colors ${
-          allDayDragOver
+          allDayDragOver && dragCopyMode
+            ? "border-green-400 bg-green-50 dark:bg-green-500/10 border-dashed"
+            : allDayDragOver
             ? "border-blue-400 bg-blue-50 dark:bg-blue-500/10 border-dashed"
             : "border-zinc-200 dark:border-zinc-800"
         }`}
@@ -315,11 +335,11 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
             {/* Drop preview */}
             {dragPreviewTop !== null && (
               <div
-                className="absolute left-16 right-2 border-t-2 border-dashed border-blue-400 z-30 pointer-events-none"
+                className={`absolute left-16 right-2 border-t-2 border-dashed z-30 pointer-events-none ${dragCopyMode ? "border-green-400" : "border-blue-400"}`}
                 style={{ top: dragPreviewTop }}
               >
-                <span className="absolute -top-4 left-0 text-[10px] font-medium text-blue-500 bg-white dark:bg-zinc-950 px-1 rounded">
-                  {minutesToTime(dragOverTime!)}
+                <span className={`absolute -top-4 left-0 text-[10px] font-medium bg-white dark:bg-zinc-950 px-1 rounded ${dragCopyMode ? "text-green-500" : "text-blue-500"}`}>
+                  {dragCopyMode ? `+ ${minutesToTime(dragOverTime!)}` : minutesToTime(dragOverTime!)}
                 </span>
               </div>
             )}

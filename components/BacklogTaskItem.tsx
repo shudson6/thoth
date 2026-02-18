@@ -10,15 +10,18 @@ type Props = {
   onSchedule: (id: string, start: string, end: string, date: string) => void;
   onScheduleAllDay: (id: string, date: string) => void;
   onOpenDetail: (id: string) => void;
+  onScheduleCopy: (id: string, start: string, end: string, date: string) => void;
+  onScheduleAllDayCopy: (id: string, date: string) => void;
 };
 
-export default function BacklogTaskItem({ task, onToggle, onSchedule, onScheduleAllDay, onOpenDetail }: Props) {
+export default function BacklogTaskItem({ task, onToggle, onSchedule, onScheduleAllDay, onOpenDetail, onScheduleCopy, onScheduleAllDayCopy }: Props) {
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   });
   const [isAllDay, setIsAllDay] = useState(false);
+  const [keepInBacklog, setKeepInBacklog] = useState(false);
   const [start, setStart] = useState("09:00");
   const [end, setEnd] = useState(() =>
     minutesToTime(9 * 60 + (task.estimatedMinutes ?? 60))
@@ -42,7 +45,7 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
     if (task.estimatedMinutes) {
       e.dataTransfer.setData("application/x-estimate", String(task.estimatedMinutes));
     }
-    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.effectAllowed = "copyMove";
   }
 
   return (
@@ -115,6 +118,16 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
               All day
             </label>
           </div>
+          <label className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={keepInBacklog}
+              onChange={(e) => setKeepInBacklog(e.target.checked)}
+              className="rounded border-zinc-300 dark:border-zinc-600"
+            />
+            Keep in backlog
+            <span className="hidden md:inline text-zinc-400">(Ctrl+drag)</span>
+          </label>
           {!isAllDay && (
             <div className="flex items-center gap-2">
               <input
@@ -137,15 +150,15 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
             <button
               onClick={() => {
                 if (isAllDay) {
-                  onScheduleAllDay(task.id, date);
+                  keepInBacklog ? onScheduleAllDayCopy(task.id, date) : onScheduleAllDay(task.id, date);
                 } else {
-                  onSchedule(task.id, start, end, date);
+                  keepInBacklog ? onScheduleCopy(task.id, start, end, date) : onSchedule(task.id, start, end, date);
                 }
                 setShowPicker(false);
               }}
               className="text-xs bg-blue-500 text-white rounded px-2 py-1 hover:bg-blue-600 transition-colors font-medium"
             >
-              Confirm
+              {keepInBacklog ? "Schedule a copy" : "Schedule"}
             </button>
           </div>
         </div>

@@ -21,11 +21,14 @@ type Props = {
   onCreateGroup: (name: string, color: string) => void;
   onUpdateGroup: (id: string, updates: Partial<Pick<Group, "name" | "color">>) => void;
   onDeleteGroup: (id: string, deleteTasks: boolean) => void;
+  onScheduleCopy: (id: string, start: string, end: string, date: string) => void;
+  onScheduleAllDayCopy: (id: string, date: string) => void;
 };
 
 export default function BacklogPane({
   tasks, groups, onAddTask, onToggleTask, onScheduleTask, onScheduleTaskAllDay,
   onDescheduleTask, onUpdateTask, onCreateGroup, onUpdateGroup, onDeleteGroup,
+  onScheduleCopy, onScheduleAllDayCopy,
 }: Props) {
   const [showForm, setShowForm] = useState(false);
   const [formGroupId, setFormGroupId] = useState<string | undefined>(undefined);
@@ -124,7 +127,7 @@ export default function BacklogPane({
 
         {/* Ungrouped tasks */}
         {ungrouped.map((task) => (
-          <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} />
+          <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
         ))}
 
         {/* Group sections */}
@@ -142,6 +145,8 @@ export default function BacklogPane({
             onAddTask={() => handleShowForm(group.id)}
             onUpdateGroup={onUpdateGroup}
             onDeleteGroup={onDeleteGroup}
+            onScheduleCopy={onScheduleCopy}
+            onScheduleAllDayCopy={onScheduleAllDayCopy}
           />
         ))}
 
@@ -152,7 +157,7 @@ export default function BacklogPane({
               Completed ({completed.length})
             </div>
             {completed.map((task) => (
-              <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} />
+              <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
             ))}
           </div>
         )}
@@ -185,11 +190,14 @@ type GroupSectionProps = {
   onAddTask: () => void;
   onUpdateGroup: (id: string, updates: Partial<Pick<Group, "name" | "color">>) => void;
   onDeleteGroup: (id: string, deleteTasks: boolean) => void;
+  onScheduleCopy: (id: string, start: string, end: string, date: string) => void;
+  onScheduleAllDayCopy: (id: string, date: string) => void;
 };
 
 function GroupSection({
   group, tasks, collapsed, onToggleCollapse, onToggleTask,
   onScheduleTask, onScheduleTaskAllDay, onOpenDetail, onAddTask, onUpdateGroup, onDeleteGroup,
+  onScheduleCopy, onScheduleAllDayCopy,
 }: GroupSectionProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -350,7 +358,7 @@ function GroupSection({
 
       {/* Group tasks */}
       {!collapsed && tasks.map((task) => (
-        <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={onOpenDetail} />
+        <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={onOpenDetail} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
       ))}
     </div>
   );

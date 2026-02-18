@@ -19,6 +19,7 @@ import {
   removeRecurrence as removeRecurrenceAction,
   createException as createExceptionAction,
   updateAllOccurrences as updateAllOccurrencesAction,
+  copyAndScheduleTask as copyAndScheduleTaskAction,
 } from "@/app/actions";
 
 type TaskAction =
@@ -33,7 +34,8 @@ type TaskAction =
   | { type: "removeRecurrence"; id: string }
   | { type: "addException"; exception: Task }
   | { type: "updateMaster"; id: string; updates: Partial<Task> }
-  | { type: "cancelOccurrence"; parentId: string; originalDate: string };
+  | { type: "cancelOccurrence"; parentId: string; originalDate: string }
+  | { type: "copy"; task: Task };
 
 function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
   switch (action.type) {
@@ -101,6 +103,8 @@ function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
           originalDate: action.originalDate,
         } as Task,
       ];
+    case "copy":
+      return [...tasks, action.task];
   }
 }
 
@@ -287,6 +291,52 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
     });
   }
 
+  // --- Copy callbacks ---
+
+  function handleCopyTask(sourceId: string, date: string, start: string, end: string) {
+    const source = optimisticTasks.find((t) => t.id === sourceId);
+    if (!source) return;
+    const tempId = Math.random().toString(36).slice(2);
+    const copy: Task = {
+      ...source,
+      id: tempId,
+      scheduledDate: date,
+      scheduledStart: start,
+      scheduledEnd: end,
+      completed: false,
+      recurrenceRule: undefined,
+      recurringParentId: undefined,
+      originalDate: undefined,
+      isVirtualRecurrence: undefined,
+    };
+    startTransition(async () => {
+      dispatchTasks({ type: "copy", task: copy });
+      await copyAndScheduleTaskAction(sourceId, date, start, end);
+    });
+  }
+
+  function handleCopyTaskAllDay(sourceId: string, date: string) {
+    const source = optimisticTasks.find((t) => t.id === sourceId);
+    if (!source) return;
+    const tempId = Math.random().toString(36).slice(2);
+    const copy: Task = {
+      ...source,
+      id: tempId,
+      scheduledDate: date,
+      scheduledStart: undefined,
+      scheduledEnd: undefined,
+      completed: false,
+      recurrenceRule: undefined,
+      recurringParentId: undefined,
+      originalDate: undefined,
+      isVirtualRecurrence: undefined,
+    };
+    startTransition(async () => {
+      dispatchTasks({ type: "copy", task: copy });
+      await copyAndScheduleTaskAction(sourceId, date);
+    });
+  }
+
   // --- Group callbacks ---
 
   function handleCreateGroup(name: string, color: string) {
@@ -358,6 +408,8 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
           onCreateException={handleCreateException}
           onUpdateAllOccurrences={handleUpdateAllOccurrences}
           onCancelOccurrence={handleCancelOccurrence}
+          onCopyTask={handleCopyTask}
+          onCopyTaskAllDay={handleCopyTaskAllDay}
         />
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
@@ -373,6 +425,8 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
           onCreateGroup={handleCreateGroup}
           onUpdateGroup={handleUpdateGroup}
           onDeleteGroup={handleDeleteGroup}
+          onScheduleCopy={handleCopyTask}
+          onScheduleAllDayCopy={handleCopyTaskAllDay}
         />
       </div>
     </div>

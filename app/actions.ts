@@ -241,6 +241,29 @@ export async function updateAllOccurrences(
   revalidatePath("/");
 }
 
+export async function copyAndScheduleTask(
+  sourceId: string,
+  date: string,
+  start?: string,
+  end?: string
+): Promise<string> {
+  const { rows: src } = await pool.query(
+    `SELECT title, description, points, estimated_minutes, group_id FROM tasks WHERE id = $1`,
+    [sourceId]
+  );
+  if (src.length === 0) throw new Error(`Task ${sourceId} not found`);
+  const s = src[0];
+  const { rows } = await pool.query(
+    `INSERT INTO tasks (title, description, points, estimated_minutes, group_id, scheduled_date, scheduled_start, scheduled_end)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+     RETURNING id`,
+    [s.title, s.description ?? null, s.points ?? null, s.estimated_minutes ?? null, s.group_id ?? null,
+     date, start ?? null, end ?? null]
+  );
+  revalidatePath("/");
+  return rows[0].id as string;
+}
+
 // --- Group actions ---
 
 export async function createGroup(name: string, color?: string) {
