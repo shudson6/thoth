@@ -39,6 +39,7 @@ type Props = {
   onCancelOccurrence?: (parentId: string, originalDate: string) => void;
   onCopyTask?: (sourceId: string, date: string, start: string, end: string) => void;
   onCopyTaskAllDay?: (sourceId: string, date: string) => void;
+  onToggleTask?: (id: string) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -129,7 +130,7 @@ function computeLayout(tasks: Task[], rowHeight: number): Map<string, { col: num
   return result;
 }
 
-export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup, onSetRecurrence, onCreateException, onUpdateAllOccurrences, onCancelOccurrence, onCopyTask, onCopyTaskAllDay }: Props) {
+export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup, onSetRecurrence, onCreateException, onUpdateAllOccurrences, onCancelOccurrence, onCopyTask, onCopyTaskAllDay, onToggleTask }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dragOffsetMinutes = useRef(0);
   const [rowHeight, setRowHeight] = useState(0);
@@ -162,11 +163,11 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
   }, [rowHeight]);
 
   const scheduledTasks = tasks.filter(
-    (t) => t.scheduledStart && t.scheduledEnd && !t.completed && t.scheduledDate === selectedDate
+    (t) => t.scheduledStart && t.scheduledEnd && t.scheduledDate === selectedDate
   );
 
   const allDayTasks = tasks.filter(
-    (t) => t.scheduledDate === selectedDate && !t.scheduledStart && !t.completed
+    (t) => t.scheduledDate === selectedDate && !t.scheduledStart
   );
 
   const groupColorMap: Record<string, string> = {};
@@ -341,14 +342,14 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
             <button
               key={task.id}
               onClick={() => setSelectedTaskId(task.id)}
-              draggable
-              onDragStart={(e) => {
+              draggable={!task.completed}
+              onDragStart={task.completed ? undefined : (e) => {
                 e.dataTransfer.setData("text/plain", task.id);
                 e.dataTransfer.setData("application/x-source", "allday");
                 e.dataTransfer.setData("application/x-estimate", String(task.estimatedMinutes ?? 60));
                 e.dataTransfer.effectAllowed = "move";
               }}
-              className="rounded-full px-3 py-0.5 text-xs font-medium transition-colors cursor-grab active:cursor-grabbing hover:opacity-80 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300"
+              className={`rounded-full px-3 py-0.5 text-xs font-medium transition-colors hover:opacity-80 bg-blue-100 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 ${task.completed ? "opacity-50 line-through cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
               style={color ? { backgroundColor: color + "30", color } : undefined}
             >
               {task.title}
@@ -427,6 +428,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
             onClose={() => setSelectedTaskId(null)}
             onUpdate={onUpdateTask}
             onCreateGroup={onCreateGroup}
+            onToggle={onToggleTask}
             onDeschedule={(id) => {
               const t = tasks.find((t) => t.id === id);
               if (t?.isVirtualRecurrence) {

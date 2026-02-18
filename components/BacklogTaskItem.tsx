@@ -6,7 +6,6 @@ import { formatEstimate, timeToMinutes, minutesToTime } from "@/lib/time";
 
 type Props = {
   task: Task;
-  onToggle: (id: string) => void;
   onSchedule: (id: string, start: string, end: string, date: string) => void;
   onScheduleAllDay: (id: string, date: string) => void;
   onOpenDetail: (id: string) => void;
@@ -14,7 +13,7 @@ type Props = {
   onScheduleAllDayCopy: (id: string, date: string) => void;
 };
 
-export default function BacklogTaskItem({ task, onToggle, onSchedule, onScheduleAllDay, onOpenDetail, onScheduleCopy, onScheduleAllDayCopy }: Props) {
+export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, onOpenDetail, onScheduleCopy, onScheduleAllDayCopy }: Props) {
   const [showPicker, setShowPicker] = useState(false);
   const [date, setDate] = useState(() => {
     const d = new Date();
@@ -55,23 +54,11 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
         draggable={!task.completed}
         onDragStart={handleDragStart}
       >
-        <input
-          type="checkbox"
-          checked={task.completed}
-          onChange={() => onToggle(task.id)}
-          className="w-4 h-4 rounded border-zinc-300 dark:border-zinc-600 accent-blue-500 shrink-0 cursor-pointer"
-        />
         <div
           className="flex-1 min-w-0 cursor-pointer hover:opacity-75 transition-opacity"
           onClick={() => onOpenDetail(task.id)}
         >
-          <span
-            className={`text-sm ${
-              task.completed
-                ? "line-through text-zinc-400 dark:text-zinc-600"
-                : "text-zinc-800 dark:text-zinc-200"
-            }`}
-          >
+          <span className="text-sm text-zinc-800 dark:text-zinc-200">
             {task.title}
           </span>
           {task.description && (
@@ -100,7 +87,7 @@ export default function BacklogTaskItem({ task, onToggle, onSchedule, onSchedule
         )}
       </div>
       {showPicker && (
-        <div className="flex flex-col gap-2 px-4 pb-2.5 pl-11">
+        <div className="flex flex-col gap-2 px-4 pb-2.5">
           <div className="flex items-center gap-2">
             <input
               type="date"

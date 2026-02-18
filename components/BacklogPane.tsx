@@ -127,7 +127,7 @@ export default function BacklogPane({
 
         {/* Ungrouped tasks */}
         {ungrouped.map((task) => (
-          <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
+          <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
         ))}
 
         {/* Group sections */}
@@ -138,7 +138,6 @@ export default function BacklogPane({
             tasks={group.tasks}
             collapsed={collapsedGroups.has(group.id)}
             onToggleCollapse={() => toggleCollapse(group.id)}
-            onToggleTask={onToggleTask}
             onScheduleTask={onScheduleTask}
             onScheduleTaskAllDay={onScheduleTaskAllDay}
             onOpenDetail={setSelectedTaskId}
@@ -157,7 +156,7 @@ export default function BacklogPane({
               Completed ({completed.length})
             </div>
             {completed.map((task) => (
-              <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
+              <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
             ))}
           </div>
         )}
@@ -170,6 +169,7 @@ export default function BacklogPane({
           onClose={() => setSelectedTaskId(null)}
           onUpdate={onUpdateTask}
           onCreateGroup={onCreateGroup}
+          onToggle={onToggleTask}
         />
       )}
     </div>
@@ -183,7 +183,6 @@ type GroupSectionProps = {
   tasks: Task[];
   collapsed: boolean;
   onToggleCollapse: () => void;
-  onToggleTask: (id: string) => void;
   onScheduleTask: (id: string, start: string, end: string, date: string) => void;
   onScheduleTaskAllDay: (id: string, date: string) => void;
   onOpenDetail: (id: string) => void;
@@ -195,7 +194,7 @@ type GroupSectionProps = {
 };
 
 function GroupSection({
-  group, tasks, collapsed, onToggleCollapse, onToggleTask,
+  group, tasks, collapsed, onToggleCollapse,
   onScheduleTask, onScheduleTaskAllDay, onOpenDetail, onAddTask, onUpdateGroup, onDeleteGroup,
   onScheduleCopy, onScheduleAllDayCopy,
 }: GroupSectionProps) {
@@ -358,7 +357,7 @@ function GroupSection({
 
       {/* Group tasks */}
       {!collapsed && tasks.map((task) => (
-        <BacklogTaskItem key={task.id} task={task} onToggle={onToggleTask} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={onOpenDetail} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
+        <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={onOpenDetail} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
       ))}
     </div>
   );

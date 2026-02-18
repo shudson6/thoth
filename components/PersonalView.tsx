@@ -410,6 +410,7 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
           onCancelOccurrence={handleCancelOccurrence}
           onCopyTask={handleCopyTask}
           onCopyTaskAllDay={handleCopyTaskAllDay}
+          onToggleTask={toggleTask}
         />
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>

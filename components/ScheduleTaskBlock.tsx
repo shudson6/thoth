@@ -46,13 +46,13 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0
 
   return (
     <div
-      className="absolute rounded-md px-3 py-1 text-sm text-white shadow-sm overflow-hidden cursor-grab active:cursor-grabbing transition-opacity hover:opacity-90"
+      className={`absolute rounded-md px-3 py-1 text-sm text-white shadow-sm overflow-hidden transition-opacity hover:opacity-90 ${task.completed ? "opacity-50 cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
       style={{ top, height, left, width, backgroundColor: bgColor }}
-      draggable
-      onDragStart={handleDragStart}
+      draggable={!task.completed}
+      onDragStart={task.completed ? undefined : handleDragStart}
       onClick={() => onOpenDetail(task.id)}
     >
-      <span className="font-medium truncate block">{task.title}</span>
+      <span className={`font-medium truncate block ${task.completed ? "line-through" : ""}`}>{task.title}</span>
       {!compact && task.points != null && (
         <span className="ml-1 text-white/70 text-xs">{task.points} pts</span>
       )}

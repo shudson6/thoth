@@ -30,6 +30,7 @@ type Props = {
     updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
   ) => void;
   onCreateGroup: (name: string, color: string) => void;
+  onToggle?: (id: string) => void;
   onDeschedule?: (id: string) => void;
   onReschedule?: (
     id: string,
@@ -56,7 +57,7 @@ function formatTime(t: string): string {
 
 export default function TaskDetailModal({
   task, groups, onClose, onUpdate, onCreateGroup,
-  onDeschedule, onReschedule, onSetRecurrence, onCreateException, onUpdateAllOccurrences,
+  onToggle, onDeschedule, onReschedule, onSetRecurrence, onCreateException, onUpdateAllOccurrences,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [showScopeDialog, setShowScopeDialog] = useState(false);
@@ -212,6 +213,11 @@ export default function TaskDetailModal({
       onSetRecurrence(masterId, recurrenceRule);
     }
     setEditing(false);
+    onClose();
+  }
+
+  function handleToggle() {
+    onToggle?.(task.id);
     onClose();
   }
 
@@ -442,14 +448,24 @@ export default function TaskDetailModal({
                 </span>
               </div>
             )}
-            {task.scheduledDate && onDeschedule && (
-              <button
-                onClick={() => { onDeschedule(task.id); onClose(); }}
-                className="text-xs font-medium text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
-              >
-                {isRecurring ? "Remove this occurrence" : "Move to Backlog"}
-              </button>
-            )}
+            <div className="flex items-center gap-3 pt-1 flex-wrap">
+              {onToggle && (
+                <button
+                  onClick={handleToggle}
+                  className="text-xs font-medium text-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                >
+                  {task.completed ? "Mark incomplete" : "Mark complete"}
+                </button>
+              )}
+              {task.scheduledDate && onDeschedule && (
+                <button
+                  onClick={() => { onDeschedule(task.id); onClose(); }}
+                  className="text-xs font-medium text-zinc-400 hover:text-red-500 dark:hover:text-red-400 transition-colors"
+                >
+                  {isRecurring ? "Remove this occurrence" : "Move to Backlog"}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>
