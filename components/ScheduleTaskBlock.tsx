@@ -3,6 +3,8 @@
 import { Task } from "@/types/task";
 import { timeToMinutes } from "@/lib/time";
 
+const MIN_BLOCK_PX = 28;
+
 type Props = {
   task: Task;
   rowHeight: number;
@@ -22,7 +24,8 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0
   const pixelsPerMinute = rowHeight / 60;
 
   const top = startMin * pixelsPerMinute;
-  const height = Math.max(duration * pixelsPerMinute, pixelsPerMinute * 15);
+  const height = Math.max(duration * pixelsPerMinute, MIN_BLOCK_PX);
+  const compact = height < MIN_BLOCK_PX * 2 || numCols > 1;
 
   function handleDragStart(e: React.DragEvent) {
     e.dataTransfer.setData("text/plain", task.id);
@@ -49,11 +52,11 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0
       onDragStart={handleDragStart}
       onClick={() => onOpenDetail(task.id)}
     >
-      <span className="font-medium">{task.title}</span>
-      {task.points != null && (
-        <span className="ml-2 text-white/70 text-xs">{task.points} pts</span>
+      <span className="font-medium truncate block">{task.title}</span>
+      {!compact && task.points != null && (
+        <span className="ml-1 text-white/70 text-xs">{task.points} pts</span>
       )}
-      {(task.recurrenceRule || task.recurringParentId || task.isVirtualRecurrence) && (
+      {!compact && (task.recurrenceRule || task.recurringParentId || task.isVirtualRecurrence) && (
         <svg
           xmlns="http://www.w3.org/2000/svg"
           viewBox="0 0 20 20"
