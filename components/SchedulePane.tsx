@@ -44,6 +44,7 @@ type Props = {
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const VISIBLE_HOURS = 16;
 const SNAP_MINUTES = 15;
+const MIN_BLOCK_PX = 28;
 
 function formatHour(h: number): string {
   const suffix = h >= 12 ? "PM" : "AM";
@@ -73,23 +74,28 @@ function snapToGrid(minutes: number): number {
   return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
 }
 
-function computeLayout(tasks: Task[]): Map<string, { col: number; numCols: number }> {
+function computeLayout(tasks: Task[], rowHeight: number): Map<string, { col: number; numCols: number }> {
   if (tasks.length === 0) return new Map();
+
+  const pixelsPerMinute = rowHeight / 60;
+  const minBlockMinutes = rowHeight > 0 ? Math.ceil(MIN_BLOCK_PX / pixelsPerMinute) : 30;
 
   const sorted = [...tasks].sort((a, b) =>
     timeToMinutes(a.scheduledStart!) - timeToMinutes(b.scheduledStart!)
   );
 
   // Greedy column assignment: place each task in the first column where
-  // the previous occupant has already ended.
+  // the previous occupant has already ended. Use effectiveEnd so that
+  // visually-expanded short blocks don't collide with the next task.
   const colEnds: number[] = [];
   const taskCols = new Map<string, number>();
   for (const task of sorted) {
-    const start = timeToMinutes(task.scheduledStart!);
-    const end   = timeToMinutes(task.scheduledEnd!);
+    const start       = timeToMinutes(task.scheduledStart!);
+    const end         = timeToMinutes(task.scheduledEnd!);
+    const effectiveEnd = Math.max(end, start + minBlockMinutes);
     let col = colEnds.findIndex((e) => e <= start);
     if (col === -1) col = colEnds.length;
-    colEnds[col] = end;
+    colEnds[col] = effectiveEnd;
     taskCols.set(task.id, col);
   }
 
@@ -107,14 +113,15 @@ function computeLayout(tasks: Task[]): Map<string, { col: number; numCols: numbe
   let clusterStart = 0;
   let clusterMaxEnd = 0;
   for (let i = 0; i < sorted.length; i++) {
-    const start = timeToMinutes(sorted[i].scheduledStart!);
-    const end   = timeToMinutes(sorted[i].scheduledEnd!);
+    const start        = timeToMinutes(sorted[i].scheduledStart!);
+    const end          = timeToMinutes(sorted[i].scheduledEnd!);
+    const effectiveEnd = Math.max(end, start + minBlockMinutes);
     if (i === 0 || start >= clusterMaxEnd) {
       if (i > 0) finalize(clusterStart, i);
       clusterStart = i;
-      clusterMaxEnd = end;
+      clusterMaxEnd = effectiveEnd;
     } else {
-      clusterMaxEnd = Math.max(clusterMaxEnd, end);
+      clusterMaxEnd = Math.max(clusterMaxEnd, effectiveEnd);
     }
   }
   finalize(clusterStart, sorted.length);
@@ -180,7 +187,7 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     return () => clearInterval(interval);
   }, [isToday]);
 
-  const layout = useMemo(() => computeLayout(scheduledTasks), [scheduledTasks]);
+  const layout = useMemo(() => computeLayout(scheduledTasks, rowHeight), [scheduledTasks, rowHeight]);
 
   const totalHeight = rowHeight * 24;
   const timeIndicatorTop = rowHeight > 0 ? (timeOffset / 60) * rowHeight : 0;
