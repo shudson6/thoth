@@ -99,6 +99,7 @@ export function expandForDate(tasks: Task[], date: string): Task[] {
         ...master,
         scheduledDate: date,
         isVirtualRecurrence: true,
+        completed: false,
       });
     }
   }

@@ -100,10 +100,57 @@ export async function updateTask(
 // --- Recurrence actions ---
 
 export async function setRecurrence(taskId: string, rule: string) {
-  await pool.query(
-    `UPDATE tasks SET recurrence_rule = $2, updated_at = now() WHERE id = $1`,
-    [taskId, rule]
-  );
+  const client = await pool.connect();
+  try {
+    const { rows } = await client.query(
+      `SELECT completed, title, description, points, estimated_minutes, group_id,
+              scheduled_date, scheduled_start, scheduled_end
+       FROM tasks WHERE id = $1`,
+      [taskId]
+    );
+    if (rows.length === 0) throw new Error(`Task ${taskId} not found`);
+    const t = rows[0];
+
+    if (!t.completed) {
+      await client.query(
+        `UPDATE tasks SET recurrence_rule = $2, updated_at = now() WHERE id = $1`,
+        [taskId, rule]
+      );
+    } else {
+      await client.query("BEGIN");
+
+      const { rows: masterRows } = await client.query(
+        `INSERT INTO tasks
+           (title, description, points, estimated_minutes, group_id,
+            scheduled_date, scheduled_start, scheduled_end,
+            recurrence_rule, completed)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,false)
+         RETURNING id`,
+        [
+          t.title, t.description, t.points, t.estimated_minutes, t.group_id,
+          t.scheduled_date, t.scheduled_start, t.scheduled_end, rule,
+        ]
+      );
+      const newMasterId = masterRows[0].id;
+
+      await client.query(
+        `UPDATE tasks
+         SET recurring_parent_id = $2,
+             original_date       = $3,
+             recurrence_rule     = NULL,
+             updated_at          = now()
+         WHERE id = $1`,
+        [taskId, newMasterId, t.scheduled_date]
+      );
+
+      await client.query("COMMIT");
+    }
+  } catch (e) {
+    await client.query("ROLLBACK");
+    throw e;
+  } finally {
+    client.release();
+  }
   revalidatePath("/");
 }
 
