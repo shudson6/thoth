@@ -25,6 +25,7 @@ type ExceptionFields = {
 type Props = {
   tasks: Task[];
   groups: Group[];
+  timezone: string;
   selectedDate: string;
   onChangeDate: (date: string) => void;
   onUpdateTask: (
@@ -69,14 +70,24 @@ function weekDates(anchor: string): string[] {
   });
 }
 
+function todayStr(tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 function shortLabel(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString(undefined, { weekday: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", { weekday: "short", day: "numeric" });
 }
 
 export default function WeekPane({
   tasks,
   groups,
+  timezone,
   selectedDate,
   onChangeDate,
   onUpdateTask,
@@ -132,7 +143,7 @@ export default function WeekPane({
               className={`text-xs font-medium text-center py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
                 d === selectedDate
                   ? "text-blue-500"
-                  : d === localDateStr()
+                  : d === todayStr(timezone)
                   ? "text-red-500"
                   : "text-zinc-600 dark:text-zinc-300"
               }`}

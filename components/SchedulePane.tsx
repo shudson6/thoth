@@ -27,6 +27,7 @@ type Props = {
     id: string,
     updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
   ) => void;
+  timezone: string;
   selectedDate: string;
   onChangeDate: (date: string) => void;
   onScheduleTask: (id: string, start: string, end: string) => void;
@@ -50,6 +51,15 @@ function localDateStr(d: Date = new Date()): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
+function todayStr(tz: string): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());
+}
+
 function shiftDate(dateStr: string, days: number): string {
   const d = new Date(dateStr + "T00:00:00");
   d.setDate(d.getDate() + days);
@@ -58,13 +68,14 @@ function shiftDate(dateStr: string, days: number): string {
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
 export default function SchedulePane({
   tasks,
   groups,
   onUpdateTask,
+  timezone,
   selectedDate,
   onChangeDate,
   onScheduleTask,
@@ -108,7 +119,7 @@ export default function SchedulePane({
     return map;
   }, [groups]);
 
-  const isToday = selectedDate === localDateStr();
+  const isToday = selectedDate === todayStr(timezone);
 
   function handleAllDayDragOver(e: React.DragEvent) {
     e.preventDefault();

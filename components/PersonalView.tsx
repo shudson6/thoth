@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useMemo, useState, useTransition } from "react";
+import { useOptimistic, useMemo, useState, useTransition, useEffect } from "react";
 import { Task, Group } from "@/types/task";
 import SchedulePane from "./SchedulePane";
 import WeekPane from "./WeekPane";
@@ -154,17 +154,34 @@ function groupsReducer(groups: Group[], action: GroupAction): Group[] {
 type Props = {
   initialTasks: Task[];
   initialGroups: Group[];
+  initialDate: string;
+  initialTimezone: string;
 };
 
-export default function PersonalView({ initialTasks, initialGroups }: Props) {
+export default function PersonalView({ initialTasks, initialGroups, initialDate, initialTimezone }: Props) {
   const [optimisticTasks, dispatchTasks] = useOptimistic(initialTasks, tasksReducer);
   const [optimisticGroups, dispatchGroups] = useOptimistic(initialGroups, groupsReducer);
   const [, startTransition] = useTransition();
 
-  const [selectedDate, setSelectedDate] = useState(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  });
+  const [selectedDate, setSelectedDate] = useState(initialDate);
+  const [timezone, setTimezone] = useState(initialTimezone);
+
+  useEffect(() => {
+    const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const todayLocal = new Intl.DateTimeFormat("en-CA", {
+      timeZone: tz,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date());
+    document.cookie = `tz=${encodeURIComponent(tz)}; path=/; max-age=31536000; SameSite=Lax`;
+    setTimezone(tz);
+    // Correct the date only if it still holds the server's initial value
+    // (i.e. the user hasn't navigated away yet) and the local date differs
+    setSelectedDate((prev) =>
+      prev === initialDate && todayLocal !== prev ? todayLocal : prev
+    );
+  }, [initialDate]);
 
   const expandedTasks = useMemo(
     () => expandForDate(optimisticTasks, selectedDate),
@@ -457,6 +474,7 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
             tasks={expandedTasks}
             groups={optimisticGroups}
             onUpdateTask={updateTask}
+            timezone={timezone}
             selectedDate={selectedDate}
             onChangeDate={setSelectedDate}
             onScheduleTask={scheduleTask}
@@ -476,6 +494,7 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
           <WeekPane
             tasks={optimisticTasks}
             groups={optimisticGroups}
+            timezone={timezone}
             selectedDate={selectedDate}
             onChangeDate={setSelectedDate}
             onUpdateTask={updateTask}
