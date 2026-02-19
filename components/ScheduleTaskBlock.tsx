@@ -41,8 +41,8 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0
   }
 
   const bgColor = groupColor ?? "#3b82f6";
-  const left = `calc(4rem + ${col} / ${numCols} * (100% - 4rem))`;
-  const width = `calc((100% - 4rem) / ${numCols} - 4px)`;
+  const left = `calc(${col} / ${numCols} * 100% + 2px)`;
+  const width = `calc(100% / ${numCols} - 4px)`;
 
   return (
     <div

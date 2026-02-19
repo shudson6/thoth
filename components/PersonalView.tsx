@@ -3,6 +3,7 @@
 import { useOptimistic, useMemo, useState, useTransition } from "react";
 import { Task, Group } from "@/types/task";
 import SchedulePane from "./SchedulePane";
+import WeekPane from "./WeekPane";
 import BacklogPane from "./BacklogPane";
 import { expandForDate } from "@/lib/recurrence";
 import {
@@ -31,6 +32,7 @@ type TaskAction =
   | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">> }
   | { type: "deleteGroupTasks"; groupId: string }
   | { type: "setRecurrence"; id: string; rule: string }
+  | { type: "promoteToException"; taskId: string; rule: string; tempMasterId: string }
   | { type: "removeRecurrence"; id: string }
   | { type: "addException"; exception: Task }
   | { type: "updateMaster"; id: string; updates: Partial<Task> }
@@ -73,6 +75,29 @@ function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
       return tasks.map((t) =>
         t.id === action.id ? { ...t, recurrenceRule: action.rule } : t
       );
+    case "promoteToException": {
+      const original = tasks.find((t) => t.id === action.taskId);
+      if (!original) return tasks;
+      const newMaster: Task = {
+        ...original,
+        id: action.tempMasterId,
+        recurrenceRule: action.rule,
+        completed: false,
+        recurringParentId: undefined,
+        originalDate: undefined,
+        isVirtualRecurrence: undefined,
+      };
+      return [
+        ...tasks.filter((t) => t.id !== action.taskId),
+        newMaster,
+        {
+          ...original,
+          recurringParentId: action.tempMasterId,
+          originalDate: original.scheduledDate,
+          recurrenceRule: undefined,
+        },
+      ];
+    }
     case "removeRecurrence":
       return tasks
         .filter((t) => t.recurringParentId !== action.id)
@@ -219,10 +244,19 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
 
   function handleSetRecurrence(taskId: string, rule: string | null) {
     if (rule) {
-      startTransition(async () => {
-        dispatchTasks({ type: "setRecurrence", id: taskId, rule });
-        await setRecurrenceAction(taskId, rule);
-      });
+      const task = optimisticTasks.find((t) => t.id === taskId);
+      if (task?.completed) {
+        const tempMasterId = Math.random().toString(36).slice(2);
+        startTransition(async () => {
+          dispatchTasks({ type: "promoteToException", taskId, rule, tempMasterId });
+          await setRecurrenceAction(taskId, rule);
+        });
+      } else {
+        startTransition(async () => {
+          dispatchTasks({ type: "setRecurrence", id: taskId, rule });
+          await setRecurrenceAction(taskId, rule);
+        });
+      }
     } else {
       startTransition(async () => {
         dispatchTasks({ type: "removeRecurrence", id: taskId });
@@ -365,6 +399,7 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
   }
 
   const [activeTab, setActiveTab] = useState<"schedule" | "backlog">("schedule");
+  const [viewMode, setViewMode] = useState<"day" | "week">("day");
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-white dark:bg-zinc-950">
@@ -393,25 +428,71 @@ export default function PersonalView({ initialTasks, initialGroups }: Props) {
       </div>
 
       <div className={`flex-1 min-h-0 flex flex-col ${activeTab === "schedule" ? "" : "hidden"} md:flex`}>
-        <SchedulePane
-          tasks={expandedTasks}
-          groups={optimisticGroups}
-          onUpdateTask={updateTask}
-          selectedDate={selectedDate}
-          onChangeDate={setSelectedDate}
-          onScheduleTask={scheduleTask}
-          onScheduleTaskAllDay={scheduleTaskAllDay}
-          onDescheduleTask={descheduleTask}
-          onRescheduleTask={rescheduleTask}
-          onCreateGroup={handleCreateGroup}
-          onSetRecurrence={handleSetRecurrence}
-          onCreateException={handleCreateException}
-          onUpdateAllOccurrences={handleUpdateAllOccurrences}
-          onCancelOccurrence={handleCancelOccurrence}
-          onCopyTask={handleCopyTask}
-          onCopyTaskAllDay={handleCopyTaskAllDay}
-          onToggleTask={toggleTask}
-        />
+        {/* Day / Week toggle — desktop only */}
+        <div className="hidden md:flex items-center gap-1 px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
+          <button
+            onClick={() => setViewMode("day")}
+            className={`px-3 py-0.5 text-xs font-medium rounded transition-colors ${
+              viewMode === "day"
+                ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-100"
+                : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            }`}
+          >
+            Day
+          </button>
+          <button
+            onClick={() => setViewMode("week")}
+            className={`px-3 py-0.5 text-xs font-medium rounded transition-colors ${
+              viewMode === "week"
+                ? "bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-100"
+                : "text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300"
+            }`}
+          >
+            Week
+          </button>
+        </div>
+
+        {viewMode === "day" ? (
+          <SchedulePane
+            tasks={expandedTasks}
+            groups={optimisticGroups}
+            onUpdateTask={updateTask}
+            selectedDate={selectedDate}
+            onChangeDate={setSelectedDate}
+            onScheduleTask={scheduleTask}
+            onScheduleTaskAllDay={scheduleTaskAllDay}
+            onDescheduleTask={descheduleTask}
+            onRescheduleTask={rescheduleTask}
+            onCreateGroup={handleCreateGroup}
+            onSetRecurrence={handleSetRecurrence}
+            onCreateException={handleCreateException}
+            onUpdateAllOccurrences={handleUpdateAllOccurrences}
+            onCancelOccurrence={handleCancelOccurrence}
+            onCopyTask={handleCopyTask}
+            onCopyTaskAllDay={handleCopyTaskAllDay}
+            onToggleTask={toggleTask}
+          />
+        ) : (
+          <WeekPane
+            tasks={optimisticTasks}
+            groups={optimisticGroups}
+            selectedDate={selectedDate}
+            onChangeDate={setSelectedDate}
+            onUpdateTask={updateTask}
+            onScheduleTask={scheduleTask}
+            onScheduleTaskAllDay={scheduleTaskAllDay}
+            onDescheduleTask={descheduleTask}
+            onRescheduleTask={rescheduleTask}
+            onCreateGroup={handleCreateGroup}
+            onSetRecurrence={handleSetRecurrence}
+            onCreateException={handleCreateException}
+            onUpdateAllOccurrences={handleUpdateAllOccurrences}
+            onCancelOccurrence={handleCancelOccurrence}
+            onCopyTask={handleCopyTask}
+            onCopyTaskAllDay={handleCopyTaskAllDay}
+            onToggleTask={toggleTask}
+          />
+        )}
       </div>
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
         <BacklogPane

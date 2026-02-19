@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Task, Group } from "@/types/task";
-import ScheduleTaskBlock from "./ScheduleTaskBlock";
 import TaskDetailModal from "./TaskDetailModal";
-import { timeToMinutes, minutesToTime } from "@/lib/time";
+import ScheduleContainer from "./ScheduleContainer";
+import TimeRuler from "./TimeRuler";
+import DayColumn from "./DayColumn";
 
 type ExceptionFields = {
   title?: string;
@@ -42,17 +43,6 @@ type Props = {
   onToggleTask?: (id: string) => void;
 };
 
-const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const VISIBLE_HOURS = 16;
-const SNAP_MINUTES = 15;
-const MIN_BLOCK_PX = 28;
-
-function formatHour(h: number): string {
-  const suffix = h >= 12 ? "PM" : "AM";
-  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
-  return `${display} ${suffix}`;
-}
-
 function localDateStr(d: Date = new Date()): string {
   const yyyy = d.getFullYear();
   const mm = String(d.getMonth() + 1).padStart(2, "0");
@@ -71,96 +61,32 @@ function formatDate(dateStr: string): string {
   return d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
 }
 
-function snapToGrid(minutes: number): number {
-  return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
-}
-
-function computeLayout(tasks: Task[], rowHeight: number): Map<string, { col: number; numCols: number }> {
-  if (tasks.length === 0) return new Map();
-
-  const pixelsPerMinute = rowHeight / 60;
-  const minBlockMinutes = rowHeight > 0 ? Math.ceil(MIN_BLOCK_PX / pixelsPerMinute) : 30;
-
-  const sorted = [...tasks].sort((a, b) =>
-    timeToMinutes(a.scheduledStart!) - timeToMinutes(b.scheduledStart!)
-  );
-
-  // Greedy column assignment: place each task in the first column where
-  // the previous occupant has already ended. Use effectiveEnd so that
-  // visually-expanded short blocks don't collide with the next task.
-  const colEnds: number[] = [];
-  const taskCols = new Map<string, number>();
-  for (const task of sorted) {
-    const start       = timeToMinutes(task.scheduledStart!);
-    const end         = timeToMinutes(task.scheduledEnd!);
-    const effectiveEnd = Math.max(end, start + minBlockMinutes);
-    let col = colEnds.findIndex((e) => e <= start);
-    if (col === -1) col = colEnds.length;
-    colEnds[col] = effectiveEnd;
-    taskCols.set(task.id, col);
-  }
-
-  // Find clusters (maximal groups of transitively overlapping tasks) and
-  // set numCols = max column index in the cluster + 1 for every member.
-  const result = new Map<string, { col: number; numCols: number }>();
-  const finalize = (from: number, to: number) => {
-    let maxCol = 0;
-    for (let i = from; i < to; i++) maxCol = Math.max(maxCol, taskCols.get(sorted[i].id)!);
-    const numCols = maxCol + 1;
-    for (let i = from; i < to; i++)
-      result.set(sorted[i].id, { col: taskCols.get(sorted[i].id)!, numCols });
-  };
-
-  let clusterStart = 0;
-  let clusterMaxEnd = 0;
-  for (let i = 0; i < sorted.length; i++) {
-    const start        = timeToMinutes(sorted[i].scheduledStart!);
-    const end          = timeToMinutes(sorted[i].scheduledEnd!);
-    const effectiveEnd = Math.max(end, start + minBlockMinutes);
-    if (i === 0 || start >= clusterMaxEnd) {
-      if (i > 0) finalize(clusterStart, i);
-      clusterStart = i;
-      clusterMaxEnd = effectiveEnd;
-    } else {
-      clusterMaxEnd = Math.max(clusterMaxEnd, effectiveEnd);
-    }
-  }
-  finalize(clusterStart, sorted.length);
-
-  return result;
-}
-
-export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate, onChangeDate, onScheduleTask, onScheduleTaskAllDay, onDescheduleTask, onRescheduleTask, onCreateGroup, onSetRecurrence, onCreateException, onUpdateAllOccurrences, onCancelOccurrence, onCopyTask, onCopyTaskAllDay, onToggleTask }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragOffsetMinutes = useRef(0);
-  const [rowHeight, setRowHeight] = useState(0);
+export default function SchedulePane({
+  tasks,
+  groups,
+  onUpdateTask,
+  selectedDate,
+  onChangeDate,
+  onScheduleTask,
+  onScheduleTaskAllDay,
+  onDescheduleTask,
+  onRescheduleTask,
+  onCreateGroup,
+  onSetRecurrence,
+  onCreateException,
+  onUpdateAllOccurrences,
+  onCancelOccurrence,
+  onCopyTask,
+  onCopyTaskAllDay,
+  onToggleTask,
+}: Props) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [dragOverTime, setDragOverTime] = useState<number | null>(null);
   const [allDayDragOver, setAllDayDragOver] = useState(false);
   const [dragCopyMode, setDragCopyMode] = useState(false);
 
   const selectedTask = selectedTaskId
     ? tasks.find((t) => t.id === selectedTaskId) ?? null
     : null;
-
-  useEffect(() => {
-    function updateRowHeight() {
-      if (containerRef.current) {
-        const h = containerRef.current.clientHeight / VISIBLE_HOURS;
-        if (h > 0) setRowHeight(h);
-      }
-    }
-    updateRowHeight();
-    window.addEventListener("resize", updateRowHeight);
-    return () => window.removeEventListener("resize", updateRowHeight);
-  }, []);
-
-  // Auto-scroll to 6 AM on mount
-  useEffect(() => {
-    if (rowHeight > 0 && containerRef.current) {
-      containerRef.current.scrollTop = rowHeight * 6;
-    }
-  }, [rowHeight]);
 
   const scheduledTasks = tasks.filter(
     (t) => t.scheduledStart && t.scheduledEnd && t.scheduledDate === selectedDate
@@ -176,87 +102,14 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
   const totalPoints = dayTasks.reduce((sum, t) => sum + t.points!, 0);
   const completedPoints = dayTasks.filter((t) => t.completed).reduce((sum, t) => sum + t.points!, 0);
 
-  const groupColorMap: Record<string, string> = {};
-  for (const g of groups) groupColorMap[g.id] = g.color;
+  const groupColorMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const g of groups) map[g.id] = g.color;
+    return map;
+  }, [groups]);
 
-  // Current time indicator (only shown when viewing today)
   const isToday = selectedDate === localDateStr();
-  const now = new Date();
-  const currentMinutes = now.getHours() * 60 + now.getMinutes();
-  const [timeOffset, setTimeOffset] = useState(currentMinutes);
 
-  useEffect(() => {
-    if (!isToday) return;
-    const interval = setInterval(() => {
-      const n = new Date();
-      setTimeOffset(n.getHours() * 60 + n.getMinutes());
-    }, 60_000);
-    return () => clearInterval(interval);
-  }, [isToday]);
-
-  const layout = useMemo(() => computeLayout(scheduledTasks, rowHeight), [scheduledTasks, rowHeight]);
-
-  const totalHeight = rowHeight * 24;
-  const timeIndicatorTop = rowHeight > 0 ? (timeOffset / 60) * rowHeight : 0;
-
-  // --- DnD helpers for time grid ---
-  function getMinutesFromY(e: React.DragEvent): number {
-    if (!containerRef.current || rowHeight <= 0) return 0;
-    const rect = containerRef.current.getBoundingClientRect();
-    const relY = e.clientY - rect.top + containerRef.current.scrollTop;
-    const minutes = (relY / totalHeight) * 24 * 60 - dragOffsetMinutes.current;
-    return snapToGrid(Math.max(0, Math.min(minutes, 24 * 60 - SNAP_MINUTES)));
-  }
-
-  function handleGridDragOver(e: React.DragEvent) {
-    e.preventDefault();
-    const isCopy = e.ctrlKey || e.metaKey;
-    e.dataTransfer.dropEffect = isCopy ? "copy" : "move";
-    setDragCopyMode(isCopy);
-    setDragOverTime(getMinutesFromY(e));
-  }
-
-  function handleGridDragLeave() {
-    setDragOverTime(null);
-    setDragCopyMode(false);
-  }
-
-  function handleGridDrop(e: React.DragEvent) {
-    e.preventDefault();
-    const taskId    = e.dataTransfer.getData("text/plain");
-    if (!taskId) return;
-
-    const isCopy = e.ctrlKey || e.metaKey;
-    const estimateStr = e.dataTransfer.getData("application/x-estimate");
-    const estimate  = estimateStr ? Number(estimateStr) : 60;
-    const isVirtual = e.dataTransfer.getData("application/x-is-virtual") === "1";
-    const isException = e.dataTransfer.getData("application/x-is-exception") === "1";
-    const origDate  = e.dataTransfer.getData("application/x-original-date");
-    const parentId  = e.dataTransfer.getData("application/x-parent-id");
-
-    const startMin = getMinutesFromY(e);
-    const endMin = Math.min(startMin + estimate, 24 * 60);
-    const newStart = minutesToTime(startMin);
-    const newEnd   = minutesToTime(endMin);
-
-    if (isCopy) {
-      onCopyTask?.(taskId, selectedDate, newStart, newEnd);
-    } else if ((isVirtual || isException) && onCreateException && origDate && parentId) {
-      onCreateException(parentId, origDate, {
-        scheduledDate:  selectedDate,
-        scheduledStart: newStart,
-        scheduledEnd:   newEnd,
-      });
-    } else {
-      onScheduleTask(taskId, newStart, newEnd);
-    }
-
-    dragOffsetMinutes.current = 0;
-    setDragOverTime(null);
-    setDragCopyMode(false);
-  }
-
-  // --- DnD helpers for all-day strip ---
   function handleAllDayDragOver(e: React.DragEvent) {
     e.preventDefault();
     const isCopy = e.ctrlKey || e.metaKey;
@@ -265,9 +118,11 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     setAllDayDragOver(true);
   }
 
-  function handleAllDayDragLeave() {
-    setAllDayDragOver(false);
-    setDragCopyMode(false);
+  function handleAllDayDragLeave(e: React.DragEvent) {
+    if (!(e.currentTarget as HTMLElement).contains(e.relatedTarget as Node)) {
+      setAllDayDragOver(false);
+      setDragCopyMode(false);
+    }
   }
 
   function handleAllDayDrop(e: React.DragEvent) {
@@ -279,14 +134,9 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
     } else {
       onScheduleTaskAllDay(taskId);
     }
-    dragOffsetMinutes.current = 0;
     setAllDayDragOver(false);
     setDragCopyMode(false);
   }
-
-  const dragPreviewTop = dragOverTime !== null && rowHeight > 0
-    ? (dragOverTime / 60) * rowHeight
-    : null;
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
@@ -376,93 +226,48 @@ export default function SchedulePane({ tasks, groups, onUpdateTask, selectedDate
       </div>
 
       {/* Scrollable time grid */}
-      <div
-        ref={containerRef}
-        className="flex-1 overflow-y-auto relative"
-        onDragOver={handleGridDragOver}
-        onDragLeave={handleGridDragLeave}
-        onDrop={handleGridDrop}
-      >
-        {rowHeight > 0 && (
-          <div className="relative" style={{ height: totalHeight }}>
-            {/* Hour rows */}
-            {HOURS.map((h) => (
-              <div
-                key={h}
-                className="absolute left-0 right-0 border-b border-zinc-200 dark:border-zinc-800 flex items-start"
-                style={{ top: h * rowHeight, height: rowHeight }}
-              >
-                <span className="w-16 shrink-0 text-xs text-zinc-400 pt-1 pl-3 select-none">
-                  {formatHour(h)}
-                </span>
-              </div>
-            ))}
-
-            {/* Current time indicator */}
-            {isToday && (
-              <div
-                className="absolute left-14 right-0 border-t-2 border-red-500 z-20 pointer-events-none"
-                style={{ top: timeIndicatorTop }}
-              >
-                <div className="w-2.5 h-2.5 rounded-full bg-red-500 -mt-[6px] -ml-[5px]" />
-              </div>
-            )}
-
-            {/* Drop preview */}
-            {dragPreviewTop !== null && (
-              <div
-                className={`absolute left-16 right-2 border-t-2 border-dashed z-30 pointer-events-none ${dragCopyMode ? "border-green-400" : "border-blue-400"}`}
-                style={{ top: dragPreviewTop }}
-              >
-                <span className={`absolute -top-4 left-0 text-[10px] font-medium bg-white dark:bg-zinc-950 px-1 rounded ${dragCopyMode ? "text-green-500" : "text-blue-500"}`}>
-                  {dragCopyMode ? `+ ${minutesToTime(dragOverTime!)}` : minutesToTime(dragOverTime!)}
-                </span>
-              </div>
-            )}
-
-            {/* Scheduled task blocks */}
-            {scheduledTasks.map((task) => {
-              const { col, numCols } = layout.get(task.id) ?? { col: 0, numCols: 1 };
-              return (
-                <ScheduleTaskBlock
-                  key={task.id}
-                  task={task}
-                  rowHeight={rowHeight}
-                  groupColor={task.groupId ? groupColorMap[task.groupId] : undefined}
-                  col={col}
-                  numCols={numCols}
-                  onOpenDetail={setSelectedTaskId}
-                  onBlockDragStart={(offset) => { dragOffsetMinutes.current = offset; }}
-                />
-              );
-            })}
-          </div>
+      <ScheduleContainer>
+        {(rowHeight) => (
+          <>
+            <TimeRuler rowHeight={rowHeight} />
+            <DayColumn
+              date={selectedDate}
+              rowHeight={rowHeight}
+              tasks={scheduledTasks}
+              groups={groups}
+              onScheduleTask={(id, start, end) => onScheduleTask(id, start, end)}
+              onCopyTask={(id, start, end) => onCopyTask?.(id, selectedDate, start, end)}
+              onCreateException={onCreateException}
+              onOpenDetail={setSelectedTaskId}
+            />
+          </>
         )}
-        {selectedTask && (
-          <TaskDetailModal
-            task={selectedTask}
-            groups={groups}
-            onClose={() => setSelectedTaskId(null)}
-            onUpdate={onUpdateTask}
-            onCreateGroup={onCreateGroup}
-            onToggle={onToggleTask}
-            onDeschedule={(id) => {
-              const t = tasks.find((t) => t.id === id);
-              if (t?.isVirtualRecurrence) {
-                onCancelOccurrence?.(t.id, t.scheduledDate!);
-              } else if (t?.recurringParentId) {
-                onCancelOccurrence?.(t.recurringParentId, t.originalDate!);
-              } else {
-                onDescheduleTask(id);
-              }
-            }}
-            onReschedule={onRescheduleTask}
-            onSetRecurrence={onSetRecurrence}
-            onCreateException={onCreateException}
-            onUpdateAllOccurrences={onUpdateAllOccurrences}
-          />
-        )}
-      </div>
+      </ScheduleContainer>
+
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          groups={groups}
+          onClose={() => setSelectedTaskId(null)}
+          onUpdate={onUpdateTask}
+          onCreateGroup={onCreateGroup}
+          onToggle={onToggleTask}
+          onDeschedule={(id) => {
+            const t = tasks.find((t) => t.id === id);
+            if (t?.isVirtualRecurrence) {
+              onCancelOccurrence?.(t.id, t.scheduledDate!);
+            } else if (t?.recurringParentId) {
+              onCancelOccurrence?.(t.recurringParentId, t.originalDate!);
+            } else {
+              onDescheduleTask(id);
+            }
+          }}
+          onReschedule={onRescheduleTask}
+          onSetRecurrence={onSetRecurrence}
+          onCreateException={onCreateException}
+          onUpdateAllOccurrences={onUpdateAllOccurrences}
+        />
+      )}
     </div>
   );
 }
