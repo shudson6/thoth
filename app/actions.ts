@@ -288,6 +288,22 @@ export async function updateAllOccurrences(
   revalidatePath("/");
 }
 
+export async function addAndScheduleTask(
+  title: string,
+  date: string,
+  start: string,
+  end: string
+): Promise<string> {
+  const { rows } = await pool.query(
+    `INSERT INTO tasks (title, scheduled_date, scheduled_start, scheduled_end)
+     VALUES ($1, $2, $3, $4)
+     RETURNING id`,
+    [title, date, start, end]
+  );
+  revalidatePath("/");
+  return rows[0].id as string;
+}
+
 export async function copyAndScheduleTask(
   sourceId: string,
   date: string,

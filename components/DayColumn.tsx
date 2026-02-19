@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Task, Group } from "@/types/task";
 import ScheduleTaskBlock from "./ScheduleTaskBlock";
 import { timeToMinutes, minutesToTime } from "@/lib/time";
@@ -27,6 +27,7 @@ type Props = {
   onCopyTask: (id: string, start: string, end: string) => void;
   onCreateException?: (parentId: string, origDate: string, fields: ExceptionFields) => void;
   onOpenDetail: (id: string) => void;
+  onCreateTask?: (date: string, start: string, end: string) => void;
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
@@ -103,6 +104,7 @@ export default function DayColumn({
   onCopyTask,
   onCreateException,
   onOpenDetail,
+  onCreateTask,
 }: Props) {
   const columnRef = useRef<HTMLDivElement>(null);
   const dragOffsetMinutes = useRef(0);
@@ -132,12 +134,12 @@ export default function DayColumn({
   const totalHeight = rowHeight * 24;
   const timeIndicatorTop = rowHeight > 0 ? (timeOffset / 60) * rowHeight : 0;
 
-  function getMinutesFromY(e: React.DragEvent): number {
+  function getMinutesFromY(clientY: number, applyDragOffset = false): number {
     if (!columnRef.current || rowHeight <= 0) return 0;
     const rect = columnRef.current.getBoundingClientRect();
     // getBoundingClientRect().top already accounts for scroll position
-    const relY = e.clientY - rect.top;
-    const minutes = (relY / totalHeight) * 24 * 60 - dragOffsetMinutes.current;
+    const relY = clientY - rect.top;
+    const minutes = (relY / totalHeight) * 24 * 60 - (applyDragOffset ? dragOffsetMinutes.current : 0);
     return snapToGrid(Math.max(0, Math.min(minutes, 24 * 60 - SNAP_MINUTES)));
   }
 
@@ -146,7 +148,7 @@ export default function DayColumn({
     const isCopy = e.ctrlKey || e.metaKey;
     e.dataTransfer.dropEffect = isCopy ? "copy" : "move";
     setDragCopyMode(isCopy);
-    setDragOverTime(getMinutesFromY(e));
+    setDragOverTime(getMinutesFromY(e.clientY, true));
   }
 
   function handleDragLeave(e: React.DragEvent) {
@@ -169,7 +171,7 @@ export default function DayColumn({
     const origDate = e.dataTransfer.getData("application/x-original-date");
     const parentId = e.dataTransfer.getData("application/x-parent-id");
 
-    const startMin = getMinutesFromY(e);
+    const startMin = getMinutesFromY(e.clientY, true);
     const endMin = Math.min(startMin + estimate, 24 * 60);
     const newStart = minutesToTime(startMin);
     const newEnd = minutesToTime(endMin);
@@ -195,6 +197,42 @@ export default function DayColumn({
     ? (dragOverTime / 60) * rowHeight
     : null;
 
+  // --- Click / long-press to create ---
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressClientY = useRef(0);
+
+  const handleColumnClick = useCallback((e: React.MouseEvent) => {
+    if (!onCreateTask) return;
+    const startMin = getMinutesFromY(e.clientY);
+    const endMin = Math.min(startMin + 60, 24 * 60);
+    onCreateTask(date, minutesToTime(startMin), minutesToTime(endMin));
+  }, [onCreateTask, date, rowHeight]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handlePointerDown(e: React.PointerEvent) {
+    if (e.pointerType === "mouse") return;
+    if ((e.target as HTMLElement).closest("[data-task-block]")) return;
+    longPressClientY.current = e.clientY;
+    longPressTimer.current = setTimeout(() => {
+      if (!onCreateTask) return;
+      const startMin = getMinutesFromY(longPressClientY.current);
+      const endMin = Math.min(startMin + 60, 24 * 60);
+      onCreateTask(date, minutesToTime(startMin), minutesToTime(endMin));
+    }, 500);
+  }
+
+  function cancelLongPress() {
+    if (longPressTimer.current) {
+      clearTimeout(longPressTimer.current);
+      longPressTimer.current = null;
+    }
+  }
+
+  function handlePointerMove(e: React.PointerEvent) {
+    if (longPressTimer.current === null) return;
+    const dy = e.clientY - longPressClientY.current;
+    if (Math.abs(dy) > 10) cancelLongPress();
+  }
+
   return (
     <div
       ref={columnRef}
@@ -203,6 +241,11 @@ export default function DayColumn({
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
+      onClick={onCreateTask ? handleColumnClick : undefined}
+      onPointerDown={onCreateTask ? handlePointerDown : undefined}
+      onPointerUp={onCreateTask ? cancelLongPress : undefined}
+      onPointerCancel={onCreateTask ? cancelLongPress : undefined}
+      onPointerMove={onCreateTask ? handlePointerMove : undefined}
     >
       {/* Hour grid lines */}
       {HOURS.map((h) => (

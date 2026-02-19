@@ -5,6 +5,7 @@ import { Task, Group } from "@/types/task";
 import SchedulePane from "./SchedulePane";
 import WeekPane from "./WeekPane";
 import BacklogPane from "./BacklogPane";
+import QuickCreateModal from "./QuickCreateModal";
 import { expandForDate } from "@/lib/recurrence";
 import {
   addTask as addTaskAction,
@@ -21,6 +22,7 @@ import {
   createException as createExceptionAction,
   updateAllOccurrences as updateAllOccurrencesAction,
   copyAndScheduleTask as copyAndScheduleTaskAction,
+  addAndScheduleTask as addAndScheduleTaskAction,
 } from "@/app/actions";
 
 type TaskAction =
@@ -417,6 +419,29 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
 
   const [activeTab, setActiveTab] = useState<"schedule" | "backlog">("schedule");
   const [viewMode, setViewMode] = useState<"day" | "week">("day");
+  const [quickCreate, setQuickCreate] = useState<{ date: string; start: string; end: string } | null>(null);
+
+  function handleCreateTask(date: string, start: string, end: string) {
+    setQuickCreate({ date, start, end });
+  }
+
+  function handleQuickCreateSave(title: string, start: string, end: string) {
+    const { date } = quickCreate!;
+    const tempId = Math.random().toString(36).slice(2);
+    const task: Task = {
+      id: tempId,
+      title,
+      completed: false,
+      scheduledDate: date,
+      scheduledStart: start,
+      scheduledEnd: end,
+    };
+    setQuickCreate(null);
+    startTransition(async () => {
+      dispatchTasks({ type: "add", task });
+      await addAndScheduleTaskAction(title, date, start, end);
+    });
+  }
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-white dark:bg-zinc-950">
@@ -489,6 +514,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
             onCopyTask={handleCopyTask}
             onCopyTaskAllDay={handleCopyTaskAllDay}
             onToggleTask={toggleTask}
+            onCreateTask={handleCreateTask}
           />
         ) : (
           <WeekPane
@@ -510,6 +536,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
             onCopyTask={handleCopyTask}
             onCopyTaskAllDay={handleCopyTaskAllDay}
             onToggleTask={toggleTask}
+            onCreateTask={handleCreateTask}
           />
         )}
       </div>
@@ -530,6 +557,16 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
           onScheduleAllDayCopy={handleCopyTaskAllDay}
         />
       </div>
+
+      {quickCreate && (
+        <QuickCreateModal
+          date={quickCreate.date}
+          start={quickCreate.start}
+          end={quickCreate.end}
+          onSave={handleQuickCreateSave}
+          onClose={() => setQuickCreate(null)}
+        />
+      )}
     </div>
   );
 }

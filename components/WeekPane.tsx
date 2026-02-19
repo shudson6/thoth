@@ -44,6 +44,7 @@ type Props = {
   onCopyTask?: (sourceId: string, date: string, start: string, end: string) => void;
   onCopyTaskAllDay?: (sourceId: string, date: string) => void;
   onToggleTask?: (id: string) => void;
+  onCreateTask?: (date: string, start: string, end: string) => void;
 };
 
 function localDateStr(d: Date = new Date()): string {
@@ -103,6 +104,7 @@ export default function WeekPane({
   onCopyTask,
   onCopyTaskAllDay,
   onToggleTask,
+  onCreateTask,
 }: Props) {
   const [selectedDetail, setSelectedDetail] = useState<{ id: string; date: string } | null>(null);
 
@@ -205,6 +207,7 @@ export default function WeekPane({
                   onCopyTask={(id, start, end) => onCopyTask?.(id, d, start, end)}
                   onCreateException={onCreateException}
                   onOpenDetail={(id) => setSelectedDetail({ id, date: d })}
+                  onCreateTask={onCreateTask}
                 />
               );
             })}

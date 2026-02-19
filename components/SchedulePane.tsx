@@ -42,6 +42,7 @@ type Props = {
   onCopyTask?: (sourceId: string, date: string, start: string, end: string) => void;
   onCopyTaskAllDay?: (sourceId: string, date: string) => void;
   onToggleTask?: (id: string) => void;
+  onCreateTask?: (date: string, start: string, end: string) => void;
 };
 
 function localDateStr(d: Date = new Date()): string {
@@ -90,6 +91,7 @@ export default function SchedulePane({
   onCopyTask,
   onCopyTaskAllDay,
   onToggleTask,
+  onCreateTask,
 }: Props) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [allDayDragOver, setAllDayDragOver] = useState(false);
@@ -250,6 +252,7 @@ export default function SchedulePane({
               onCopyTask={(id, start, end) => onCopyTask?.(id, selectedDate, start, end)}
               onCreateException={onCreateException}
               onOpenDetail={setSelectedTaskId}
+              onCreateTask={onCreateTask}
             />
           </>
         )}

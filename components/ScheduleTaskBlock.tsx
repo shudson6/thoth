@@ -50,7 +50,8 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0
       style={{ top, height, left, width, backgroundColor: bgColor }}
       draggable={!task.completed}
       onDragStart={task.completed ? undefined : handleDragStart}
-      onClick={() => onOpenDetail(task.id)}
+      onClick={(e) => { e.stopPropagation(); onOpenDetail(task.id); }}
+      data-task-block=""
     >
       <span className={`font-medium truncate block ${task.completed ? "line-through" : ""}`}>{task.title}</span>
       {!compact && task.points != null && (
