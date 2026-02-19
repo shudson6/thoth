@@ -59,7 +59,9 @@ export function occursOnDate(master: Task, date: string): boolean {
   });
 
   const dayStart = utcDate(date);
-  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000);
+  // Use dayEnd - 1ms so the upper bound is exclusive: avoids a task whose
+  // dtstart is midnight of the *next* day being counted as occurring today.
+  const dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000 - 1);
   const occurrences = rule.between(dayStart, dayEnd, true);
   return occurrences.length > 0;
 }
