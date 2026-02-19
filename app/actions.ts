@@ -208,7 +208,7 @@ export async function createException(
     const points          = "points"          in fields ? fields.points          : m.points;
     const estimatedMin    = "estimatedMinutes" in fields ? fields.estimatedMinutes : m.estimated_minutes;
     const groupId         = "groupId"         in fields ? fields.groupId         : m.group_id;
-    const scheduledDate   = fields.scheduledDate   ?? m.scheduled_date;
+    const scheduledDate   = fields.scheduledDate   ?? originalDate;
     const scheduledStart  = "scheduledStart"  in fields ? fields.scheduledStart  : m.scheduled_start;
     const scheduledEnd    = "scheduledEnd"    in fields ? fields.scheduledEnd    : m.scheduled_end;
     const completed       = fields.completed  ?? false;
