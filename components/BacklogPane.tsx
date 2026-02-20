@@ -299,7 +299,7 @@ function GroupSection({
   return (
     <div className="border-t border-zinc-200 dark:border-zinc-800">
       {/* Group header */}
-      <div className="flex items-center gap-2 px-4 py-2 hover:bg-zinc-50 dark:hover:bg-zinc-900/50">
+      <div className="flex items-center gap-2 px-4 py-2 bg-zinc-50 dark:bg-zinc-900/40 hover:bg-zinc-100 dark:hover:bg-zinc-800/60">
         <button onClick={onToggleCollapse} className="flex items-center gap-2 flex-1 min-w-0">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -356,9 +356,13 @@ function GroupSection({
       </div>
 
       {/* Group tasks */}
-      {!collapsed && tasks.map((task) => (
-        <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={onOpenDetail} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
-      ))}
+      {!collapsed && (
+        <div className="ml-4 border-l-2" style={{ borderColor: group.color }}>
+          {tasks.map((task) => (
+            <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={onOpenDetail} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
