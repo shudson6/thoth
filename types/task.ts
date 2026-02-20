@@ -9,6 +9,7 @@ export type Task = {
   scheduledEnd?: string;   // "HH:MM" e.g. "10:30"
   estimatedMinutes?: number;
   groupId?: string;
+  allDay?: boolean;      // true = all-day strip; false/undefined = due-today pane (when date-only)
 
   // Recurrence (persisted)
   recurrenceRule?: string;     // RRULE string, present on master tasks

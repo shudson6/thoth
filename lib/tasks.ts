@@ -5,7 +5,7 @@ export async function getTasks(): Promise<Task[]> {
   const { rows } = await pool.query(
     `SELECT id, title, description, points, completed,
             scheduled_date, scheduled_start, scheduled_end, estimated_minutes, group_id,
-            recurrence_rule, recurring_parent_id, original_date, cancelled
+            recurrence_rule, recurring_parent_id, original_date, cancelled, all_day
      FROM tasks
      ORDER BY position, created_at`
   );
@@ -27,6 +27,7 @@ export async function getTasks(): Promise<Task[]> {
     if (r.recurrence_rule) task.recurrenceRule = r.recurrence_rule;
     if (r.recurring_parent_id) task.recurringParentId = r.recurring_parent_id;
     if (r.original_date) task.originalDate = r.original_date;
+    if (r.all_day) task.allDay = true;
     return task;
   });
 }

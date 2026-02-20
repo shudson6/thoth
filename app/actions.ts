@@ -31,7 +31,8 @@ export async function toggleTask(id: string) {
 export async function scheduleTask(id: string, start: string, end: string, date: string) {
   await pool.query(
     `UPDATE tasks
-     SET scheduled_date = $2, scheduled_start = $3, scheduled_end = $4, updated_at = now()
+     SET scheduled_date = $2, scheduled_start = $3, scheduled_end = $4,
+         all_day = false, updated_at = now()
      WHERE id = $1`,
     [id, date, start, end]
   );
@@ -41,7 +42,8 @@ export async function scheduleTask(id: string, start: string, end: string, date:
 export async function descheduleTask(id: string) {
   await pool.query(
     `UPDATE tasks
-     SET scheduled_date = NULL, scheduled_start = NULL, scheduled_end = NULL, updated_at = now()
+     SET scheduled_date = NULL, scheduled_start = NULL, scheduled_end = NULL,
+         all_day = false, updated_at = now()
      WHERE id = $1`,
     [id]
   );
@@ -51,7 +53,19 @@ export async function descheduleTask(id: string) {
 export async function scheduleTaskAllDay(id: string, date: string) {
   await pool.query(
     `UPDATE tasks
-     SET scheduled_date = $2, scheduled_start = NULL, scheduled_end = NULL, updated_at = now()
+     SET scheduled_date = $2, scheduled_start = NULL, scheduled_end = NULL,
+         all_day = true, updated_at = now()
+     WHERE id = $1`,
+    [id, date]
+  );
+  revalidatePath("/");
+}
+
+export async function planTaskForDate(id: string, date: string) {
+  await pool.query(
+    `UPDATE tasks
+     SET scheduled_date = $2, scheduled_start = NULL, scheduled_end = NULL,
+         all_day = false, updated_at = now()
      WHERE id = $1`,
     [id, date]
   );
@@ -60,7 +74,7 @@ export async function scheduleTaskAllDay(id: string, date: string) {
 
 export async function updateTask(
   id: string,
-  updates: { title?: string; description?: string; points?: number; estimatedMinutes?: number; groupId?: string | null }
+  updates: { title?: string; description?: string; points?: number; estimatedMinutes?: number; groupId?: string | null; allDay?: boolean }
 ) {
   const sets: string[] = [];
   const vals: unknown[] = [];
@@ -85,6 +99,10 @@ export async function updateTask(
   if (updates.groupId !== undefined) {
     sets.push(`group_id = $${i++}`);
     vals.push(updates.groupId);
+  }
+  if (updates.allDay !== undefined) {
+    sets.push(`all_day = $${i++}`);
+    vals.push(updates.allDay);
   }
 
   if (sets.length === 0) return;
@@ -187,6 +205,7 @@ export async function createException(
     scheduledEnd?: string | null;
     completed?: boolean;
     cancelled?: boolean;
+    allDay?: boolean;
   }
 ): Promise<string> {
   const client = await pool.connect();
@@ -196,7 +215,7 @@ export async function createException(
     // Fetch master to inherit template values
     const { rows } = await client.query(
       `SELECT title, description, points, estimated_minutes, group_id,
-              scheduled_date, scheduled_start, scheduled_end
+              scheduled_date, scheduled_start, scheduled_end, all_day
        FROM tasks WHERE id = $1`,
       [parentId]
     );
@@ -213,13 +232,14 @@ export async function createException(
     const scheduledEnd    = "scheduledEnd"    in fields ? fields.scheduledEnd    : m.scheduled_end;
     const completed       = fields.completed  ?? false;
     const cancelled       = fields.cancelled  ?? false;
+    const allDay          = "allDay"          in fields ? (fields.allDay ?? false) : (m.all_day ?? false);
 
     const result = await client.query(
       `INSERT INTO tasks
          (title, description, points, estimated_minutes, group_id,
           scheduled_date, scheduled_start, scheduled_end,
-          completed, cancelled, recurring_parent_id, original_date)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
+          completed, cancelled, all_day, recurring_parent_id, original_date)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
        ON CONFLICT (recurring_parent_id, original_date)
        DO UPDATE SET
          title = EXCLUDED.title,
@@ -232,12 +252,13 @@ export async function createException(
          scheduled_end = EXCLUDED.scheduled_end,
          completed = EXCLUDED.completed,
          cancelled = EXCLUDED.cancelled,
+         all_day = EXCLUDED.all_day,
          updated_at = now()
        RETURNING id`,
       [
         title, description ?? null, points ?? null, estimatedMin ?? null, groupId ?? null,
         scheduledDate, scheduledStart ?? null, scheduledEnd ?? null,
-        completed, cancelled, parentId, originalDate,
+        completed, cancelled, allDay, parentId, originalDate,
       ]
     );
 
@@ -263,6 +284,7 @@ export async function updateAllOccurrences(
     scheduledStart?: string | null;
     scheduledEnd?: string | null;
     recurrenceRule?: string;
+    allDay?: boolean;
   }
 ) {
   const sets: string[] = [];
@@ -277,6 +299,7 @@ export async function updateAllOccurrences(
   if (updates.scheduledStart !== undefined) { sets.push(`scheduled_start = $${i++}`);  vals.push(updates.scheduledStart); }
   if (updates.scheduledEnd !== undefined)   { sets.push(`scheduled_end = $${i++}`);    vals.push(updates.scheduledEnd); }
   if (updates.recurrenceRule !== undefined) { sets.push(`recurrence_rule = $${i++}`);  vals.push(updates.recurrenceRule); }
+  if (updates.allDay !== undefined)         { sets.push(`all_day = $${i++}`);           vals.push(updates.allDay); }
 
   if (sets.length === 0) return;
   sets.push(`updated_at = now()`);

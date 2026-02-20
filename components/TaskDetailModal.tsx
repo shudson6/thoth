@@ -19,6 +19,7 @@ type ExceptionFields = {
   scheduledEnd?: string | null;
   completed?: boolean;
   cancelled?: boolean;
+  allDay?: boolean;
 };
 
 type Props = {
@@ -27,7 +28,7 @@ type Props = {
   onClose: () => void;
   onUpdate: (
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId" | "allDay">>
   ) => void;
   onCreateGroup: (name: string, color: string) => void;
   onToggle?: (id: string) => void;
@@ -74,6 +75,8 @@ export default function TaskDetailModal({
   const [scheduledStart, setScheduledStart] = useState(task.scheduledStart ?? "");
   const [scheduledEnd, setScheduledEnd] = useState(task.scheduledEnd ?? "");
   const [isAllDay, setIsAllDay] = useState(!task.scheduledStart && !task.scheduledEnd);
+  // Whether the date-only task is an all-day event (true) or due-today (false)
+  const [allDayEvent, setAllDayEvent] = useState(task.allDay ?? false);
 
   // Recurrence field
   const [recurrenceRule, setRecurrenceRule] = useState<string | null>(task.recurrenceRule ?? null);
@@ -96,6 +99,7 @@ export default function TaskDetailModal({
     setScheduledStart(task.scheduledStart ?? "");
     setScheduledEnd(task.scheduledEnd ?? "");
     setIsAllDay(!task.scheduledStart && !task.scheduledEnd);
+    setAllDayEvent(task.allDay ?? false);
     setRecurrenceRule(task.recurrenceRule ?? null);
     setShowScopeDialog(false);
     setEditing(true);
@@ -124,7 +128,7 @@ export default function TaskDetailModal({
 
   // Collect all pending changes without committing them
   function collectChanges() {
-    const metaUpdates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">> = {};
+    const metaUpdates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId" | "allDay">> = {};
     const trimmedTitle = title.trim();
     if (trimmedTitle && trimmedTitle !== task.title) metaUpdates.title = trimmedTitle;
     if (description !== (task.description ?? "")) metaUpdates.description = description || undefined;
@@ -144,7 +148,12 @@ export default function TaskDetailModal({
 
     const ruleChanged = recurrenceRule !== (task.recurrenceRule ?? null);
 
-    return { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged };
+    // allDayEvent only applies when the task has no time
+    const effectiveAllDayEvent = isAllDay ? allDayEvent : false;
+    const allDayChanged = effectiveAllDayEvent !== (task.allDay ?? false);
+    if (allDayChanged) metaUpdates.allDay = effectiveAllDayEvent;
+
+    return { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged, allDayChanged, effectiveAllDayEvent };
   }
 
   function handleSave() {
@@ -167,8 +176,9 @@ export default function TaskDetailModal({
     setEditing(false);
   }
 
+
   function handleScopeThisOnly() {
-    const { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged } = collectChanges();
+    const { metaUpdates, newStart, newEnd, scheduleChanged, allDayChanged, effectiveAllDayEvent } = collectChanges();
 
     // Determine masterId and occurrenceDate
     const masterId = task.recurringParentId ?? task.id;
@@ -183,6 +193,9 @@ export default function TaskDetailModal({
       fields.scheduledStart = newStart ?? null;
       fields.scheduledEnd   = newEnd   ?? null;
     }
+    if (allDayChanged) {
+      fields.allDay = effectiveAllDayEvent;
+    }
     // Note: recurrence rule changes are master-level; "this only" ignores them
 
     if (onCreateException) {
@@ -193,13 +206,16 @@ export default function TaskDetailModal({
   }
 
   function handleScopeAll() {
-    const { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged } = collectChanges();
+    const { metaUpdates, newStart, newEnd, scheduleChanged, ruleChanged, allDayChanged, effectiveAllDayEvent } = collectChanges();
     const masterId = task.recurringParentId ?? task.id;
 
     const masterUpdates: Partial<Task> = { ...metaUpdates };
     if (scheduleChanged) {
       masterUpdates.scheduledStart = newStart;
       masterUpdates.scheduledEnd   = newEnd;
+    }
+    if (allDayChanged) {
+      masterUpdates.allDay = effectiveAllDayEvent;
     }
     if (Object.keys(masterUpdates).length > 0 && onUpdateAllOccurrences) {
       onUpdateAllOccurrences(masterId, masterUpdates);
@@ -324,6 +340,18 @@ export default function TaskDetailModal({
                   />
                   All day
                 </label>
+                {isAllDay && (
+                  <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer select-none pl-1">
+                    <input
+                      type="checkbox"
+                      checked={allDayEvent}
+                      onChange={(e) => setAllDayEvent(e.target.checked)}
+                      className="rounded border-zinc-300 dark:border-zinc-600"
+                    />
+                    All-day event
+                    <span className="text-xs text-zinc-400 dark:text-zinc-500">(vs. due today)</span>
+                  </label>
+                )}
                 <div className="flex gap-3">
                   <div className="flex-1">
                     <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Start</label>
@@ -430,7 +458,9 @@ export default function TaskDetailModal({
                 <span>
                   {task.scheduledStart && task.scheduledEnd
                     ? `${formatTime(task.scheduledStart)} – ${formatTime(task.scheduledEnd)}`
-                    : "All day"}
+                    : task.allDay
+                    ? "All day"
+                    : "Due today"}
                 </span>
               </div>
             )}

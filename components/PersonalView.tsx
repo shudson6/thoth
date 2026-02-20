@@ -5,6 +5,7 @@ import { Task, Group } from "@/types/task";
 import SchedulePane from "./SchedulePane";
 import WeekPane from "./WeekPane";
 import BacklogPane from "./BacklogPane";
+import DueTodayPane from "./DueTodayPane";
 import QuickCreateModal from "./QuickCreateModal";
 import { expandForDate } from "@/lib/recurrence";
 import {
@@ -23,6 +24,7 @@ import {
   updateAllOccurrences as updateAllOccurrencesAction,
   copyAndScheduleTask as copyAndScheduleTaskAction,
   addAndScheduleTask as addAndScheduleTaskAction,
+  planTaskForDate as planTaskForDateAction,
 } from "@/app/actions";
 
 type TaskAction =
@@ -30,6 +32,7 @@ type TaskAction =
   | { type: "toggle"; id: string }
   | { type: "schedule"; id: string; start: string; end: string; date: string }
   | { type: "scheduleAllDay"; id: string; date: string }
+  | { type: "planForDate"; id: string; date: string }
   | { type: "deschedule"; id: string }
   | { type: "update"; id: string; updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">> }
   | { type: "deleteGroupTasks"; groupId: string }
@@ -52,19 +55,25 @@ function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
     case "schedule":
       return tasks.map((t) =>
         t.id === action.id
-          ? { ...t, scheduledDate: action.date, scheduledStart: action.start, scheduledEnd: action.end }
+          ? { ...t, scheduledDate: action.date, scheduledStart: action.start, scheduledEnd: action.end, allDay: false }
           : t
       );
     case "scheduleAllDay":
       return tasks.map((t) =>
         t.id === action.id
-          ? { ...t, scheduledDate: action.date, scheduledStart: undefined, scheduledEnd: undefined }
+          ? { ...t, scheduledDate: action.date, scheduledStart: undefined, scheduledEnd: undefined, allDay: true }
+          : t
+      );
+    case "planForDate":
+      return tasks.map((t) =>
+        t.id === action.id
+          ? { ...t, scheduledDate: action.date, scheduledStart: undefined, scheduledEnd: undefined, allDay: false }
           : t
       );
     case "deschedule":
       return tasks.map((t) =>
         t.id === action.id
-          ? { ...t, scheduledDate: undefined, scheduledStart: undefined, scheduledEnd: undefined }
+          ? { ...t, scheduledDate: undefined, scheduledStart: undefined, scheduledEnd: undefined, allDay: false }
           : t
       );
     case "update":
@@ -190,6 +199,13 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
     [optimisticTasks, selectedDate]
   );
 
+  const dueTodayTasks = useMemo(
+    () => expandedTasks.filter(
+      (t) => t.scheduledDate === selectedDate && !t.scheduledStart && !t.allDay && !t.cancelled
+    ),
+    [expandedTasks, selectedDate]
+  );
+
   function addTask(title: string, points?: number, description?: string, estimatedMinutes?: number, groupId?: string) {
     const tempId = Math.random().toString(36).slice(2);
     const task: Task = { id: tempId, title, description, points, estimatedMinutes, groupId, completed: false };
@@ -251,7 +267,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
 
   function updateTask(
     id: string,
-    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
+    updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId" | "allDay">>
   ) {
     startTransition(async () => {
       dispatchTasks({ type: "update", id, updates });
@@ -309,6 +325,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
       scheduledEnd: "scheduledEnd" in fields ? (fields.scheduledEnd ?? undefined) : master.scheduledEnd,
       completed: fields.completed ?? master.completed,
       cancelled: fields.cancelled ?? undefined,
+      allDay: "allDay" in fields ? (fields.allDay ?? false) : (master.allDay ?? false),
     };
     startTransition(async () => {
       dispatchTasks({ type: "addException", exception });
@@ -330,6 +347,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
       ...(updates.scheduledStart     !== undefined && { scheduledStart:   updates.scheduledStart ?? undefined }),
       ...(updates.scheduledEnd       !== undefined && { scheduledEnd:     updates.scheduledEnd ?? undefined }),
       ...(updates.recurrenceRule     !== undefined && { recurrenceRule:   updates.recurrenceRule }),
+      ...(updates.allDay             !== undefined && { allDay:           updates.allDay }),
     };
     startTransition(async () => {
       dispatchTasks({ type: "updateMaster", id: masterId, updates: taskUpdates });
@@ -341,6 +359,20 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
     startTransition(async () => {
       dispatchTasks({ type: "cancelOccurrence", parentId, originalDate });
       await createExceptionAction(parentId, originalDate, { cancelled: true });
+    });
+  }
+
+  function handlePlanForDate(taskId: string, date: string) {
+    startTransition(async () => {
+      dispatchTasks({ type: "planForDate", id: taskId, date });
+      await planTaskForDateAction(taskId, date);
+    });
+  }
+
+  function handleCreateDueTodayException(parentId: string, originalDate: string, date: string) {
+    handleCreateException(parentId, originalDate, {
+      scheduledDate: date,
+      allDay: false,
     });
   }
 
@@ -470,7 +502,8 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
         </button>
       </div>
 
-      <div className={`flex-1 min-h-0 flex flex-col ${activeTab === "schedule" ? "" : "hidden"} md:flex`}>
+      <div className={`flex-1 min-h-0 flex flex-col md:flex-row ${activeTab === "schedule" ? "" : "hidden"} md:flex`}>
+        <div className="flex-1 min-h-0 flex flex-col">
         {/* Day / Week toggle — desktop only */}
         <div className="hidden md:flex items-center gap-1 px-3 py-1.5 border-b border-zinc-200 dark:border-zinc-800 shrink-0">
           <button
@@ -539,6 +572,8 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
             onCopyTaskAllDay={handleCopyTaskAllDay}
             onToggleTask={toggleTask}
             onCreateTask={handleCreateTask}
+            onPlanForDate={handlePlanForDate}
+            onCreateDueTodayException={handleCreateDueTodayException}
           />
         ) : (
           <WeekPane
@@ -562,9 +597,38 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
             onCopyTaskAllDay={handleCopyTaskAllDay}
             onToggleTask={toggleTask}
             onCreateTask={handleCreateTask}
+            onPlanForDate={handlePlanForDate}
+            onCreateDueTodayException={handleCreateDueTodayException}
           />
         )}
-      </div>
+        </div>{/* end schedule/week column */}
+
+        {/* Due Today pane — desktop day view only */}
+        {viewMode === "day" && (
+          <div className="hidden md:flex flex-col min-h-0 w-56 shrink-0 border-l border-zinc-200 dark:border-zinc-800">
+            <DueTodayPane
+              tasks={dueTodayTasks}
+              date={selectedDate}
+              groups={optimisticGroups}
+              groupColorMap={Object.fromEntries(optimisticGroups.map((g) => [g.id, g.color]))}
+              onPlanForDate={(id) => handlePlanForDate(id, selectedDate)}
+              onCreateException={(parentId, originalDate) =>
+                handleCreateDueTodayException(parentId, originalDate, selectedDate)
+              }
+              onToggleComplete={(task) => toggleTask(task.id)}
+              onDeschedule={descheduleTask}
+              onUpdateTask={updateTask}
+              onCreateGroup={handleCreateGroup}
+              onRescheduleTask={rescheduleTask}
+              onSetRecurrence={handleSetRecurrence}
+              onCreateExceptionFull={handleCreateException}
+              onUpdateAllOccurrences={handleUpdateAllOccurrences}
+              onCancelOccurrence={handleCancelOccurrence}
+            />
+          </div>
+        )}
+
+      </div>{/* end schedule+duetoday wrapper */}
       <div className={`flex-1 min-h-0 flex flex-col md:flex-none md:w-[35%] ${activeTab === "backlog" ? "" : "hidden"} md:flex`}>
         <BacklogPane
           tasks={optimisticTasks}

@@ -6,6 +6,7 @@ import TaskDetailModal from "./TaskDetailModal";
 import ScheduleContainer from "./ScheduleContainer";
 import TimeRuler from "./TimeRuler";
 import DayColumn from "./DayColumn";
+import DueTodayStrip from "./DueTodayStrip";
 
 type ExceptionFields = {
   title?: string;
@@ -44,6 +45,8 @@ type Props = {
   onCopyTaskAllDay?: (sourceId: string, date: string) => void;
   onToggleTask?: (id: string) => void;
   onCreateTask?: (date: string, start: string, end: string) => void;
+  onPlanForDate?: (taskId: string, date: string) => void;
+  onCreateDueTodayException?: (parentId: string, originalDate: string, date: string) => void;
 };
 
 function localDateStr(d: Date = new Date()): string {
@@ -94,6 +97,8 @@ export default function SchedulePane({
   onCopyTaskAllDay,
   onToggleTask,
   onCreateTask,
+  onPlanForDate,
+  onCreateDueTodayException,
 }: Props) {
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [allDayDragOver, setAllDayDragOver] = useState(false);
@@ -108,7 +113,11 @@ export default function SchedulePane({
   );
 
   const allDayTasks = tasks.filter(
-    (t) => t.scheduledDate === selectedDate && !t.scheduledStart
+    (t) => t.scheduledDate === selectedDate && !t.scheduledStart && t.allDay === true
+  );
+
+  const dueTodayTasks = tasks.filter(
+    (t) => t.scheduledDate === selectedDate && !t.scheduledStart && !t.allDay
   );
 
   const dayTasks = tasks.filter(
@@ -239,6 +248,26 @@ export default function SchedulePane({
           );
         })}
       </div>
+
+      {/* Due-today strip — mobile only (desktop has the separate DueTodayPane column) */}
+      {onPlanForDate && (
+        <div className="md:hidden shrink-0 border-b border-zinc-200 dark:border-zinc-800 flex">
+          <span className="w-16 shrink-0 text-xs text-zinc-400 dark:text-zinc-500 flex items-center pl-3 select-none">
+            Today
+          </span>
+          <DueTodayStrip
+            tasks={dueTodayTasks}
+            date={selectedDate}
+            groupColorMap={groupColorMap}
+            onPlanForDate={(id) => onPlanForDate(id, selectedDate)}
+            onCreateException={(parentId, originalDate) =>
+              onCreateDueTodayException?.(parentId, originalDate, selectedDate)
+            }
+            onToggleComplete={(task) => onToggleTask?.(task.id)}
+            onOpenDetail={setSelectedTaskId}
+          />
+        </div>
+      )}
 
       {/* Scrollable time grid */}
       <ScheduleContainer visibleHours={visibleHours}>

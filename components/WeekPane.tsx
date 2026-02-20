@@ -7,6 +7,7 @@ import ScheduleContainer from "./ScheduleContainer";
 import TimeRuler from "./TimeRuler";
 import DayColumn from "./DayColumn";
 import AllDayStrip from "./AllDayStrip";
+import DueTodayStrip from "./DueTodayStrip";
 import TaskDetailModal from "./TaskDetailModal";
 
 type ExceptionFields = {
@@ -46,6 +47,8 @@ type Props = {
   onCopyTaskAllDay?: (sourceId: string, date: string) => void;
   onToggleTask?: (id: string) => void;
   onCreateTask?: (date: string, start: string, end: string) => void;
+  onPlanForDate?: (taskId: string, date: string) => void;
+  onCreateDueTodayException?: (parentId: string, originalDate: string, date: string) => void;
 };
 
 function localDateStr(d: Date = new Date()): string {
@@ -107,6 +110,8 @@ export default function WeekPane({
   onCopyTaskAllDay,
   onToggleTask,
   onCreateTask,
+  onPlanForDate,
+  onCreateDueTodayException,
 }: Props) {
   const [selectedDetail, setSelectedDetail] = useState<{ id: string; date: string } | null>(null);
 
@@ -174,7 +179,7 @@ export default function WeekPane({
         </div>
         {dates.map((d) => {
           const allDayTasks = expandedByDate[d].filter(
-            (t) => t.scheduledDate === d && !t.scheduledStart && !t.cancelled
+            (t) => t.scheduledDate === d && !t.scheduledStart && !t.cancelled && t.allDay === true
           );
           return (
             <AllDayStrip
@@ -183,6 +188,32 @@ export default function WeekPane({
               groupColorMap={groupColorMap}
               onScheduleAllDay={(taskId) => onScheduleTaskAllDay(taskId, d)}
               onCopyAllDay={(taskId) => onCopyTaskAllDay?.(taskId, d)}
+              onOpenDetail={(id) => setSelectedDetail({ id, date: d })}
+            />
+          );
+        })}
+      </div>
+
+      {/* Due-today row */}
+      <div className="flex shrink-0 border-b border-zinc-200 dark:border-zinc-800">
+        <div className="w-16 shrink-0 text-xs text-zinc-400 dark:text-zinc-500 flex items-center pl-3 select-none">
+          Today
+        </div>
+        {dates.map((d) => {
+          const dueTodayTasks = expandedByDate[d].filter(
+            (t) => t.scheduledDate === d && !t.scheduledStart && !t.cancelled && !t.allDay
+          );
+          return (
+            <DueTodayStrip
+              key={d}
+              tasks={dueTodayTasks}
+              date={d}
+              groupColorMap={groupColorMap}
+              onPlanForDate={(taskId) => onPlanForDate?.(taskId, d)}
+              onCreateException={(parentId, originalDate) =>
+                onCreateDueTodayException?.(parentId, originalDate, d)
+              }
+              onToggleComplete={(task) => onToggleTask?.(task.id)}
               onOpenDetail={(id) => setSelectedDetail({ id, date: d })}
             />
           );

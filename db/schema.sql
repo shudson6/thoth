@@ -43,16 +43,26 @@ CREATE TABLE tasks (
     recurring_parent_id uuid        REFERENCES tasks(id) ON DELETE CASCADE,
     original_date       date,
     cancelled           boolean     NOT NULL DEFAULT false,
+    all_day             boolean     NOT NULL DEFAULT false,
     created_at          timestamptz NOT NULL DEFAULT now(),
     updated_at          timestamptz NOT NULL DEFAULT now(),
 
-    -- Scheduling: either all null, date-only (all-day), or date+start+end
+    -- Scheduling: four valid states:
+    --   backlog:    scheduled_date IS NULL,  scheduled_start IS NULL, all_day = false
+    --   due-today:  scheduled_date IS NOT NULL, scheduled_start IS NULL, all_day = false
+    --   all-day:    scheduled_date IS NOT NULL, scheduled_start IS NULL, all_day = true
+    --   timed:      scheduled_date IS NOT NULL, scheduled_start IS NOT NULL, all_day = false
     CONSTRAINT scheduled_fields_together CHECK (
         (scheduled_date IS NULL AND scheduled_start IS NULL AND scheduled_end IS NULL)
         OR
         (scheduled_date IS NOT NULL AND scheduled_start IS NULL AND scheduled_end IS NULL)
         OR
         (scheduled_date IS NOT NULL AND scheduled_start IS NOT NULL AND scheduled_end IS NOT NULL)
+    ),
+
+    -- all_day=true is only valid for date-only rows (no time, date required)
+    CONSTRAINT all_day_only_for_date_only CHECK (
+        NOT (all_day = true AND (scheduled_date IS NULL OR scheduled_start IS NOT NULL))
     ),
 
     -- End must be at or after start (equal = zero-duration/instant task)
