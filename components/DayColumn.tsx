@@ -31,7 +31,6 @@ type Props = {
 };
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
-const SNAP_MINUTES = 15;
 const MIN_BLOCK_PX = 28;
 
 function localDateStr(d: Date = new Date()): string {
@@ -41,8 +40,8 @@ function localDateStr(d: Date = new Date()): string {
   return `${yyyy}-${mm}-${dd}`;
 }
 
-function snapToGrid(minutes: number): number {
-  return Math.round(minutes / SNAP_MINUTES) * SNAP_MINUTES;
+function snapToGrid(minutes: number, snapMinutes: number): number {
+  return Math.round(minutes / snapMinutes) * snapMinutes;
 }
 
 function computeLayout(tasks: Task[], rowHeight: number): Map<string, { col: number; numCols: number }> {
@@ -126,6 +125,8 @@ export default function DayColumn({
     return () => clearInterval(interval);
   }, [isToday]);
 
+  const snapMinutes = rowHeight >= 80 ? 5 : 15;
+
   const layout = useMemo(() => computeLayout(tasks, rowHeight), [tasks, rowHeight]);
 
   const groupColorMap: Record<string, string> = {};
@@ -140,7 +141,7 @@ export default function DayColumn({
     // getBoundingClientRect().top already accounts for scroll position
     const relY = clientY - rect.top;
     const minutes = (relY / totalHeight) * 24 * 60 - (applyDragOffset ? dragOffsetMinutes.current : 0);
-    return snapToGrid(Math.max(0, Math.min(minutes, 24 * 60 - SNAP_MINUTES)));
+    return snapToGrid(Math.max(0, Math.min(minutes, 24 * 60 - snapMinutes)), snapMinutes);
   }
 
   function handleDragOver(e: React.DragEvent) {
