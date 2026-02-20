@@ -23,6 +23,7 @@ type ExceptionFields = {
 type Props = {
   tasks: Task[];
   groups: Group[];
+  visibleHours: number;
   onUpdateTask: (
     id: string,
     updates: Partial<Pick<Task, "title" | "description" | "points" | "estimatedMinutes" | "groupId">>
@@ -75,6 +76,7 @@ function formatDate(dateStr: string): string {
 export default function SchedulePane({
   tasks,
   groups,
+  visibleHours,
   onUpdateTask,
   timezone,
   selectedDate,
@@ -239,7 +241,7 @@ export default function SchedulePane({
       </div>
 
       {/* Scrollable time grid */}
-      <ScheduleContainer>
+      <ScheduleContainer visibleHours={visibleHours}>
         {(rowHeight) => (
           <>
             <TimeRuler rowHeight={rowHeight} />

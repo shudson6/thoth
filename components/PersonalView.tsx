@@ -419,6 +419,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
 
   const [activeTab, setActiveTab] = useState<"schedule" | "backlog">("schedule");
   const [viewMode, setViewMode] = useState<"day" | "week">("day");
+  const [visibleHours, setVisibleHours] = useState(16);
   const [quickCreate, setQuickCreate] = useState<{ date: string; start: string; end: string } | null>(null);
 
   function handleCreateTask(date: string, start: string, end: string) {
@@ -492,12 +493,35 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
           >
             Week
           </button>
+          <div className="flex-1" />
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setVisibleHours((h) => Math.min(h + 1, 24))}
+              disabled={visibleHours >= 24}
+              className="w-5 h-5 flex items-center justify-center rounded text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Zoom out"
+            >
+              −
+            </button>
+            <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums w-7 text-center select-none">
+              {visibleHours}h
+            </span>
+            <button
+              onClick={() => setVisibleHours((h) => Math.max(h - 1, 2))}
+              disabled={visibleHours <= 2}
+              className="w-5 h-5 flex items-center justify-center rounded text-xs text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              aria-label="Zoom in"
+            >
+              +
+            </button>
+          </div>
         </div>
 
         {viewMode === "day" ? (
           <SchedulePane
             tasks={expandedTasks}
             groups={optimisticGroups}
+            visibleHours={visibleHours}
             onUpdateTask={updateTask}
             timezone={timezone}
             selectedDate={selectedDate}
@@ -520,6 +544,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
           <WeekPane
             tasks={optimisticTasks}
             groups={optimisticGroups}
+            visibleHours={visibleHours}
             timezone={timezone}
             selectedDate={selectedDate}
             onChangeDate={setSelectedDate}

@@ -25,6 +25,7 @@ type ExceptionFields = {
 type Props = {
   tasks: Task[];
   groups: Group[];
+  visibleHours: number;
   timezone: string;
   selectedDate: string;
   onChangeDate: (date: string) => void;
@@ -88,6 +89,7 @@ function shortLabel(dateStr: string): string {
 export default function WeekPane({
   tasks,
   groups,
+  visibleHours,
   timezone,
   selectedDate,
   onChangeDate,
@@ -188,7 +190,7 @@ export default function WeekPane({
       </div>
 
       {/* Scrollable time grid */}
-      <ScheduleContainer>
+      <ScheduleContainer visibleHours={visibleHours}>
         {(rowHeight) => (
           <>
             <TimeRuler rowHeight={rowHeight} />
