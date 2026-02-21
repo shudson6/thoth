@@ -12,12 +12,12 @@ const COLOR_PRESETS = [
   { name: "Pink", hex: "#ec4899" },
 ];
 
-type Props = {
+type Props = Readonly<{
   groups: Group[];
   selectedGroupId?: string | null;
   onChange: (groupId: string | null) => void;
   onCreateGroup: (name: string, color: string) => void;
-};
+}>;
 
 export default function GroupPicker({ groups, selectedGroupId, onChange, onCreateGroup }: Props) {
   const [open, setOpen] = useState(false);

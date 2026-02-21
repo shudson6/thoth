@@ -162,12 +162,12 @@ function groupsReducer(groups: Group[], action: GroupAction): Group[] {
   }
 }
 
-type Props = {
+type Props = Readonly<{
   initialTasks: Task[];
   initialGroups: Group[];
   initialDate: string;
   initialTimezone: string;
-};
+}>;
 
 export default function PersonalView({ initialTasks, initialGroups, initialDate, initialTimezone }: Props) {
   const [optimisticTasks, dispatchTasks] = useOptimistic(initialTasks, tasksReducer);

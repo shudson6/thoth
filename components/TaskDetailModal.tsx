@@ -22,7 +22,7 @@ type ExceptionFields = {
   allDay?: boolean;
 };
 
-type Props = {
+type Props = Readonly<{
   task: Task;
   groups: Group[];
   onClose: () => void;
@@ -42,7 +42,7 @@ type Props = {
   onSetRecurrence?: (taskId: string, rule: string | null) => void;
   onCreateException?: (parentId: string, originalDate: string, fields: ExceptionFields) => void;
   onUpdateAllOccurrences?: (masterId: string, updates: Partial<Task>) => void;
-};
+}>;
 
 function formatScheduledDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");

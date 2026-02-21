@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react";
 import { timeToMinutes, minutesToTime } from "@/lib/time";
 
-type Props = {
+type Props = Readonly<{
   date: string;    // "YYYY-MM-DD"
   start: string;   // "HH:MM"
   end: string;     // "HH:MM"
   onSave: (title: string, start: string, end: string) => void;
   onClose: () => void;
-};
+}>;
 
 function formatDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");

@@ -23,7 +23,7 @@ type ExceptionFields = {
   cancelled?: boolean;
 };
 
-type Props = {
+type Props = Readonly<{
   tasks: Task[];
   groups: Group[];
   visibleHours: number;
@@ -49,7 +49,7 @@ type Props = {
   onCreateTask?: (date: string, start: string, end: string) => void;
   onPlanForDate?: (taskId: string, date: string) => void;
   onCreateDueTodayException?: (parentId: string, originalDate: string, date: string) => void;
-};
+}>;
 
 function localDateStr(d: Date = new Date()): string {
   const yyyy = d.getFullYear();

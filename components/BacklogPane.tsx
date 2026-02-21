@@ -6,7 +6,7 @@ import BacklogTaskItem from "./BacklogTaskItem";
 import AddTaskForm from "./AddTaskForm";
 import TaskDetailModal from "./TaskDetailModal";
 
-type Props = {
+type Props = Readonly<{
   tasks: Task[];
   groups: Group[];
   onAddTask: (title: string, points?: number, description?: string, estimatedMinutes?: number, groupId?: string) => void;
@@ -23,7 +23,7 @@ type Props = {
   onDeleteGroup: (id: string, deleteTasks: boolean) => void;
   onScheduleCopy: (id: string, start: string, end: string, date: string) => void;
   onScheduleAllDayCopy: (id: string, date: string) => void;
-};
+}>;
 
 export default function BacklogPane({
   tasks, groups, onAddTask, onToggleTask, onScheduleTask, onScheduleTaskAllDay,
@@ -183,7 +183,7 @@ export default function BacklogPane({
 
 // --- GroupSection sub-component ---
 
-type GroupSectionProps = {
+type GroupSectionProps = Readonly<{
   group: Group;
   tasks: Task[];
   collapsed: boolean;
@@ -196,7 +196,7 @@ type GroupSectionProps = {
   onDeleteGroup: (id: string, deleteTasks: boolean) => void;
   onScheduleCopy: (id: string, start: string, end: string, date: string) => void;
   onScheduleAllDayCopy: (id: string, date: string) => void;
-};
+}>;
 
 function GroupSection({
   group, tasks, collapsed, onToggleCollapse,

@@ -3,13 +3,13 @@
 import { useState } from "react";
 import { Task } from "@/types/task";
 
-type Props = {
+type Props = Readonly<{
   tasks: Task[];
   groupColorMap: Record<string, string>;
   onScheduleAllDay: (taskId: string) => void;
   onCopyAllDay?: (taskId: string) => void;
   onOpenDetail: (id: string) => void;
-};
+}>;
 
 export default function AllDayStrip({ tasks, groupColorMap, onScheduleAllDay, onCopyAllDay, onOpenDetail }: Props) {
   const [dragOver, setDragOver] = useState(false);

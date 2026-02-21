@@ -4,13 +4,13 @@ import { useState } from "react";
 import { Group } from "@/types/task";
 import GroupPicker from "./GroupPicker";
 
-type Props = {
+type Props = Readonly<{
   groups: Group[];
   defaultGroupId?: string;
   onAdd: (title: string, points?: number, description?: string, estimatedMinutes?: number, groupId?: string) => void;
   onCancel: () => void;
   onCreateGroup: (name: string, color: string) => void;
-};
+}>;
 
 export default function AddTaskForm({ groups, defaultGroupId, onAdd, onCancel, onCreateGroup }: Props) {
   const [title, setTitle] = useState("");

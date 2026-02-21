@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 
-type Props = {
+type Props = Readonly<{
   onThisOnly: () => void;
   onAll: () => void;
   onCancel: () => void;
-};
+}>;
 
 export default function RecurrenceScopeDialog({ onThisOnly, onAll, onCancel }: Props) {
   const [scope, setScope] = useState<"this" | "all">("this");

@@ -4,14 +4,14 @@ import { useState } from "react";
 import { Task } from "@/types/task";
 import { formatEstimate, timeToMinutes, minutesToTime } from "@/lib/time";
 
-type Props = {
+type Props = Readonly<{
   task: Task;
   onSchedule: (id: string, start: string, end: string, date: string) => void;
   onScheduleAllDay: (id: string, date: string) => void;
   onOpenDetail: (id: string) => void;
   onScheduleCopy: (id: string, start: string, end: string, date: string) => void;
   onScheduleAllDayCopy: (id: string, date: string) => void;
-};
+}>;
 
 export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, onOpenDetail, onScheduleCopy, onScheduleAllDayCopy }: Props) {
   const [showPicker, setShowPicker] = useState(false);

@@ -18,7 +18,7 @@ type ExceptionFields = {
   allDay?: boolean;
 };
 
-type Props = {
+type Props = Readonly<{
   tasks: Task[];
   date: string;
   groups: Group[];
@@ -36,7 +36,7 @@ type Props = {
   onCreateExceptionFull?: (parentId: string, originalDate: string, fields: ExceptionFields) => void;
   onUpdateAllOccurrences?: (masterId: string, updates: Partial<Task>) => void;
   onCancelOccurrence?: (parentId: string, originalDate: string) => void;
-};
+}>;
 
 export default function DueTodayPane({
   tasks,

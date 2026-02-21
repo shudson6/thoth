@@ -2,11 +2,11 @@
 
 import { buildRRule } from "@/lib/recurrence";
 
-type Props = {
+type Props = Readonly<{
   value: string | null;
   anchorDate: string;
   onChange: (rule: string | null) => void;
-};
+}>;
 
 const WEEKDAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 

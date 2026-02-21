@@ -2,10 +2,10 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-type Props = {
+type Props = Readonly<{
   visibleHours: number;
   children: (rowHeight: number) => React.ReactNode;
-};
+}>;
 
 export default function ScheduleContainer({ visibleHours, children }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);

@@ -5,7 +5,7 @@ import { timeToMinutes } from "@/lib/time";
 
 const MIN_BLOCK_PX = 28;
 
-type Props = {
+type Props = Readonly<{
   task: Task;
   rowHeight: number;
   groupColor?: string;
@@ -13,7 +13,7 @@ type Props = {
   numCols?: number;
   onOpenDetail: (id: string) => void;
   onBlockDragStart?: (offsetMinutes: number) => void;
-};
+}>;
 
 export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0, numCols = 1, onOpenDetail, onBlockDragStart }: Props) {
   if (!task.scheduledStart || !task.scheduledEnd) return null;

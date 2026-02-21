@@ -8,7 +8,7 @@ function formatHour(h: number): string {
   return `${display} ${suffix}`;
 }
 
-export default function TimeRuler({ rowHeight }: { rowHeight: number }) {
+export default function TimeRuler({ rowHeight }: Readonly<{ rowHeight: number }>) {
   return (
     <div className="w-16 shrink-0 relative select-none" style={{ height: rowHeight * 24 }}>
       {HOURS.map((h) => (

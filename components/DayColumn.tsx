@@ -18,7 +18,7 @@ type ExceptionFields = {
   cancelled?: boolean;
 };
 
-type Props = {
+type Props = Readonly<{
   tasks: Task[];
   groups: Group[];
   date: string;
@@ -28,7 +28,7 @@ type Props = {
   onCreateException?: (parentId: string, origDate: string, fields: ExceptionFields) => void;
   onOpenDetail: (id: string) => void;
   onCreateTask?: (date: string, start: string, end: string) => void;
-};
+}>;
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MIN_BLOCK_PX = 28;

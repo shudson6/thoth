@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Task } from "@/types/task";
 
-type Props = {
+type Props = Readonly<{
   tasks: Task[];
   date: string;
   groupColorMap: Record<string, string>;
@@ -12,7 +12,7 @@ type Props = {
   onCreateException: (parentId: string, originalDate: string) => void;
   onToggleComplete: (task: Task) => void;
   onOpenDetail: (taskId: string) => void;
-};
+}>;
 
 export default function DueTodayStrip({
   tasks,
