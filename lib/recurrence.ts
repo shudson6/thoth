@@ -123,7 +123,7 @@ export function describeRRule(rule: string): string {
     return `Weekly on ${name}`;
   }
   if (upper.startsWith("FREQ=MONTHLY;BYMONTHDAY=")) {
-    const n = parseInt(upper.replace("FREQ=MONTHLY;BYMONTHDAY=", ""), 10);
+    const n = Number.parseInt(upper.replace("FREQ=MONTHLY;BYMONTHDAY=", ""), 10);
     return `Monthly on the ${ordinal(n)}`;
   }
   return "Custom";
