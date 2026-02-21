@@ -237,6 +237,8 @@ export default function DayColumn({
   return (
     <div
       ref={columnRef}
+      role="region"
+      aria-label="Schedule"
       className="flex-1 relative border-l border-zinc-200 dark:border-zinc-800"
       style={{ height: totalHeight }}
       onDragOver={handleDragOver}

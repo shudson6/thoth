@@ -65,6 +65,8 @@ export default function DueTodayStrip({
 
   return (
     <div
+      role="region"
+      aria-label="Due today"
       className={`flex-1 min-h-7 flex items-center gap-2 flex-wrap px-2 py-1 border-l transition-colors ${
         dragOver && copyMode
           ? "border-green-400 bg-green-50 dark:bg-green-500/10"
@@ -84,6 +86,7 @@ export default function DueTodayStrip({
         return (
           <div
             key={task.id}
+            role="listitem"
             className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs border transition-colors max-w-[180px] ${
               task.completed
                 ? "opacity-50 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"

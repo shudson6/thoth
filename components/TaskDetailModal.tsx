@@ -248,10 +248,14 @@ export default function TaskDetailModal({
 
   return (
     <div
+      role="presentation"
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="task-detail-title"
         className="relative w-full max-w-md rounded-md bg-white dark:bg-zinc-900 shadow-lg border border-zinc-200 dark:border-zinc-700 p-6"
         onClick={(e) => e.stopPropagation()}
       >
@@ -420,7 +424,7 @@ export default function TaskDetailModal({
           </div>
         ) : (
           <div className="space-y-3 pr-12">
-            <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
+            <h2 id="task-detail-title" className="text-lg font-semibold text-zinc-800 dark:text-zinc-100">
               {task.title}
             </h2>
             <p className="text-sm text-zinc-600 dark:text-zinc-400 whitespace-pre-wrap">

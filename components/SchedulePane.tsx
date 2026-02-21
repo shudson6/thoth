@@ -212,6 +212,8 @@ export default function SchedulePane({
 
       {/* All-day strip */}
       <div
+        role="region"
+        aria-label="All-day events"
         className={`shrink-0 border-b px-4 py-2 min-h-[40px] flex items-center gap-2 flex-wrap transition-colors ${
           allDayDragOver && dragCopyMode
             ? "border-green-400 bg-green-50 dark:bg-green-500/10 border-dashed"

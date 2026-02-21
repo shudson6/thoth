@@ -46,11 +46,14 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0
 
   return (
     <div
+      role="button"
+      tabIndex={0}
       className={`absolute rounded-md px-3 py-1 text-sm text-white shadow-sm overflow-hidden transition-opacity hover:opacity-90 ${task.completed ? "opacity-50 cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
       style={{ top, height, left, width, backgroundColor: bgColor }}
       draggable={!task.completed}
       onDragStart={task.completed ? undefined : handleDragStart}
       onClick={(e) => { e.stopPropagation(); onOpenDetail(task.id); }}
+      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onOpenDetail(task.id); } }}
       data-task-block=""
     >
       <span className={`font-medium truncate block ${task.completed ? "line-through" : ""}`}>{task.title}</span>

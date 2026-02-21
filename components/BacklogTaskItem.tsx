@@ -50,12 +50,13 @@ export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, on
   return (
     <div className="border-b border-zinc-100 dark:border-zinc-800 last:border-b-0">
       <div
+        role="listitem"
         className={`flex items-center gap-3 px-4 py-2.5 ${!task.completed ? "cursor-grab active:cursor-grabbing" : ""}`}
         draggable={!task.completed}
         onDragStart={handleDragStart}
       >
-        <div
-          className="flex-1 min-w-0 cursor-pointer hover:opacity-75 transition-opacity"
+        <button
+          className="flex-1 min-w-0 text-left hover:opacity-75 transition-opacity"
           onClick={() => onOpenDetail(task.id)}
         >
           <span className="text-sm text-zinc-800 dark:text-zinc-200">
@@ -66,7 +67,7 @@ export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, on
               {task.description}
             </p>
           )}
-        </div>
+        </button>
         {task.estimatedMinutes != null && (
           <span className="text-xs text-zinc-400 dark:text-zinc-500 tabular-nums">
             {formatEstimate(task.estimatedMinutes)}

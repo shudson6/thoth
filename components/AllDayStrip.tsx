@@ -45,6 +45,8 @@ export default function AllDayStrip({ tasks, groupColorMap, onScheduleAllDay, on
 
   return (
     <div
+      role="region"
+      aria-label="All-day tasks"
       className={`flex-1 min-h-[40px] flex items-center gap-2 flex-wrap px-2 py-1 border-l transition-colors ${
         dragOver && copyMode
           ? "border-green-400 bg-green-50 dark:bg-green-500/10"

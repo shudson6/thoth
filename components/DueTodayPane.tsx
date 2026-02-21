@@ -120,6 +120,8 @@ export default function DueTodayPane({
 
       {/* Task list + drop zone */}
       <div
+        role="region"
+        aria-label="Due today tasks"
         className={`flex-1 overflow-y-auto min-h-0 transition-colors ${
           dragOver && copyMode
             ? "bg-green-50 dark:bg-green-500/5"
@@ -144,6 +146,7 @@ export default function DueTodayPane({
           return (
             <div
               key={task.id}
+              role="listitem"
               className={`flex items-start gap-2 px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors group ${
                 task.completed ? "opacity-50" : ""
               }`}
