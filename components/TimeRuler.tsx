@@ -4,7 +4,9 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 
 function formatHour(h: number): string {
   const suffix = h >= 12 ? "PM" : "AM";
-  const display = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  let display = h;
+  if (h === 0) display = 12;
+  else if (h > 12) display = h - 12;
   return `${display} ${suffix}`;
 }
 

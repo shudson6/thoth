@@ -52,7 +52,9 @@ function formatScheduledDate(dateStr: string): string {
 function formatTime(t: string): string {
   const [h, m] = t.split(":").map(Number);
   const suffix = h >= 12 ? "PM" : "AM";
-  const hour = h === 0 ? 12 : h > 12 ? h - 12 : h;
+  let hour = h;
+  if (h === 0) hour = 12;
+  else if (h > 12) hour = h - 12;
   return m === 0 ? `${hour} ${suffix}` : `${hour}:${String(m).padStart(2, "0")} ${suffix}`;
 }
 

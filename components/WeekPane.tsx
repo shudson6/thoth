@@ -115,6 +115,12 @@ export default function WeekPane({
 }: Props) {
   const [selectedDetail, setSelectedDetail] = useState<{ id: string; date: string } | null>(null);
 
+  function getDateColor(d: string): string {
+    if (d === selectedDate) return "text-blue-500";
+    if (d === todayStr(timezone)) return "text-red-500";
+    return "text-zinc-600 dark:text-zinc-300";
+  }
+
   const dates = useMemo(() => weekDates(selectedDate), [selectedDate]);
 
   const expandedByDate = useMemo(
@@ -149,13 +155,7 @@ export default function WeekPane({
             <button
               key={d}
               onClick={() => onChangeDate(d)}
-              className={`text-xs font-medium text-center py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${
-                d === selectedDate
-                  ? "text-blue-500"
-                  : d === todayStr(timezone)
-                  ? "text-red-500"
-                  : "text-zinc-600 dark:text-zinc-300"
-              }`}
+              className={`text-xs font-medium text-center py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors ${getDateColor(d)}`}
             >
               {shortLabel(d)}
             </button>
