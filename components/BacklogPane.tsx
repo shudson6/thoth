@@ -127,9 +127,11 @@ export default function BacklogPane({
         )}
 
         {/* Ungrouped tasks */}
-        {ungrouped.map((task) => (
-          <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
-        ))}
+        <ul>
+          {ungrouped.map((task) => (
+            <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
+          ))}
+        </ul>
 
         {/* Group sections */}
         {grouped.map((group) => (
@@ -156,9 +158,11 @@ export default function BacklogPane({
             <div className="px-4 py-1.5 text-xs text-zinc-400 dark:text-zinc-500 font-medium">
               Completed ({completed.length})
             </div>
-            {completed.map((task) => (
-              <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
-            ))}
+            <ul>
+              {completed.map((task) => (
+                <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={setSelectedTaskId} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
+              ))}
+            </ul>
           </div>
         )}
       </section>
@@ -358,11 +362,11 @@ function GroupSection({
 
       {/* Group tasks */}
       {!collapsed && (
-        <div className="ml-4 border-l-2" style={{ borderColor: group.color }}>
+        <ul className="ml-4 border-l-2" style={{ borderColor: group.color }}>
           {tasks.map((task) => (
             <BacklogTaskItem key={task.id} task={task} onSchedule={onScheduleTask} onScheduleAllDay={onScheduleTaskAllDay} onOpenDetail={onOpenDetail} onScheduleCopy={onScheduleCopy} onScheduleAllDayCopy={onScheduleAllDayCopy} />
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

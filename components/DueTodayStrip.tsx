@@ -80,12 +80,12 @@ export default function DueTodayStrip({
       {tasks.length === 0 && !dragOver && (
         <span className="text-xs text-zinc-300 dark:text-zinc-600 select-none">Drop here</span>
       )}
+      <ul className="contents">
       {tasks.map((task) => {
         const color = task.groupId ? groupColorMap[task.groupId] : undefined;
         return (
-          <div
+          <li
             key={task.id}
-            role="listitem"
             className={`flex items-center gap-1.5 rounded px-2 py-0.5 text-xs border transition-colors max-w-[180px] ${
               task.completed
                 ? "opacity-50 border-zinc-200 dark:border-zinc-700 bg-white dark:bg-zinc-900"
@@ -127,9 +127,10 @@ export default function DueTodayStrip({
             >
               {task.title}
             </button>
-          </div>
+          </li>
         );
       })}
+      </ul>
     </section>
   );
 }

@@ -138,14 +138,14 @@ export default function DueTodayPane({
           </div>
         )}
 
+        <ul>
         {[...incomplete, ...completed].map((task) => {
           const color = task.groupId ? groupColorMap[task.groupId] : undefined;
           const group = task.groupId ? groups.find((g) => g.id === task.groupId) : undefined;
 
           return (
-            <div
+            <li
               key={task.id}
-              role="listitem"
               className={`flex items-start gap-2 px-3 py-2 border-b border-zinc-100 dark:border-zinc-800/60 hover:bg-zinc-50 dark:hover:bg-zinc-800/40 transition-colors group ${
                 task.completed ? "opacity-50" : ""
               }`}
@@ -217,9 +217,10 @@ export default function DueTodayPane({
                   <path d="M6.28 5.22a.75.75 0 00-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 101.06 1.06L10 11.06l3.72 3.72a.75.75 0 101.06-1.06L11.06 10l3.72-3.72a.75.75 0 00-1.06-1.06L10 8.94 6.28 5.22z" />
                 </svg>
               </button>
-            </div>
+            </li>
           );
         })}
+        </ul>
       </section>
 
       {selectedTask && (
