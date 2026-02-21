@@ -105,7 +105,7 @@ export default function DayColumn({
   onOpenDetail,
   onCreateTask,
 }: Props) {
-  const columnRef = useRef<HTMLDivElement>(null);
+  const columnRef = useRef<HTMLElement>(null);
   const dragOffsetMinutes = useRef(0);
   const [dragOverTime, setDragOverTime] = useState<number | null>(null);
   const [dragCopyMode, setDragCopyMode] = useState(false);
@@ -235,9 +235,8 @@ export default function DayColumn({
   }
 
   return (
-    <div
+    <section
       ref={columnRef}
-      role="region"
       aria-label="Schedule"
       className="flex-1 relative border-l border-zinc-200 dark:border-zinc-800"
       style={{ height: totalHeight }}
@@ -297,6 +296,6 @@ export default function DayColumn({
           />
         );
       })}
-    </div>
+    </section>
   );
 }

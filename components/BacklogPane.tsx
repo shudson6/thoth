@@ -111,8 +111,7 @@ export default function BacklogPane({
       )}
 
       {/* Task list (drop target for descheduling) */}
-      <div
-        role="region"
+      <section
         aria-label="Backlog tasks"
         className={`flex-1 overflow-y-auto transition-colors ${
           dragOver ? "bg-blue-50 dark:bg-blue-500/10 outline-2 outline-dashed outline-blue-400 -outline-offset-2" : ""
@@ -162,7 +161,7 @@ export default function BacklogPane({
             ))}
           </div>
         )}
-      </div>
+      </section>
 
       {selectedTask && (
         <TaskDetailModal

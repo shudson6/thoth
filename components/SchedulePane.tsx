@@ -211,8 +211,7 @@ export default function SchedulePane({
       </div>
 
       {/* All-day strip */}
-      <div
-        role="region"
+      <section
         aria-label="All-day events"
         className={`shrink-0 border-b px-4 py-2 min-h-[40px] flex items-center gap-2 flex-wrap transition-colors ${
           allDayDragOver && dragCopyMode
@@ -249,7 +248,7 @@ export default function SchedulePane({
             </button>
           );
         })}
-      </div>
+      </section>
 
       {/* Due-today strip — mobile only (desktop has the separate DueTodayPane column) */}
       {onPlanForDate && (

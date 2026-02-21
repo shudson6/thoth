@@ -119,8 +119,7 @@ export default function DueTodayPane({
       </div>
 
       {/* Task list + drop zone */}
-      <div
-        role="region"
+      <section
         aria-label="Due today tasks"
         className={`flex-1 overflow-y-auto min-h-0 transition-colors ${
           dragOver && copyMode
@@ -221,7 +220,7 @@ export default function DueTodayPane({
             </div>
           );
         })}
-      </div>
+      </section>
 
       {selectedTask && (
         <TaskDetailModal

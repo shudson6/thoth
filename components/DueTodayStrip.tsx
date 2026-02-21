@@ -64,8 +64,7 @@ export default function DueTodayStrip({
   }
 
   return (
-    <div
-      role="region"
+    <section
       aria-label="Due today"
       className={`flex-1 min-h-7 flex items-center gap-2 flex-wrap px-2 py-1 border-l transition-colors ${
         dragOver && copyMode
@@ -131,6 +130,6 @@ export default function DueTodayStrip({
           </div>
         );
       })}
-    </div>
+    </section>
   );
 }
