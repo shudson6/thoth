@@ -269,13 +269,13 @@ export default function DayColumn({
       )}
 
       {/* Drop preview */}
-      {dragPreviewTop !== null && (
+      {dragPreviewTop !== null && dragOverTime !== null && (
         <div
           className={`absolute left-0 right-2 border-t-2 border-dashed z-30 pointer-events-none ${dragCopyMode ? "border-green-400" : "border-blue-400"}`}
           style={{ top: dragPreviewTop }}
         >
           <span className={`absolute -top-4 left-0 text-[10px] font-medium bg-white dark:bg-zinc-950 px-1 rounded ${dragCopyMode ? "text-green-500" : "text-blue-500"}`}>
-            {dragCopyMode ? `+ ${minutesToTime(dragOverTime!)}` : minutesToTime(dragOverTime!)}
+            {dragCopyMode ? `+ ${minutesToTime(dragOverTime)}` : minutesToTime(dragOverTime)}
           </span>
         </div>
       )}

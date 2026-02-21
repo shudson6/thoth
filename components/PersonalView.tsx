@@ -218,8 +218,8 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
   function toggleTask(id: string) {
     // Check if this is a virtual recurring instance
     const task = expandedTasks.find((t) => t.id === id);
-    if (task?.isVirtualRecurrence) {
-      handleCreateException(id, task.scheduledDate!, { completed: !task.completed });
+    if (task?.isVirtualRecurrence && task.scheduledDate) {
+      handleCreateException(id, task.scheduledDate, { completed: !task.completed });
       return;
     }
     startTransition(async () => {

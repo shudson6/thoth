@@ -259,10 +259,10 @@ export default function WeekPane({
           onToggle={onToggleTask}
           onDeschedule={(id) => {
             const t = selectedTask;
-            if (t?.isVirtualRecurrence) {
-              onCancelOccurrence?.(t.id, t.scheduledDate!);
-            } else if (t?.recurringParentId) {
-              onCancelOccurrence?.(t.recurringParentId, t.originalDate!);
+            if (t?.isVirtualRecurrence && t.scheduledDate) {
+              onCancelOccurrence?.(t.id, t.scheduledDate);
+            } else if (t?.recurringParentId && t.originalDate) {
+              onCancelOccurrence?.(t.recurringParentId, t.originalDate);
             } else {
               onDescheduleTask(id);
             }
