@@ -43,16 +43,19 @@ export default function AllDayStrip({ tasks, groupColorMap, onScheduleAllDay, on
     setCopyMode(false);
   }
 
+  let borderClass: string;
+  if (dragOver && copyMode) {
+    borderClass = "border-green-400 bg-green-50 dark:bg-green-500/10";
+  } else if (dragOver) {
+    borderClass = "border-blue-400 bg-blue-50 dark:bg-blue-500/10";
+  } else {
+    borderClass = "border-zinc-200 dark:border-zinc-800";
+  }
+
   return (
     <section
       aria-label="All-day tasks"
-      className={`flex-1 min-h-[40px] flex items-center gap-2 flex-wrap px-2 py-1 border-l transition-colors ${
-        dragOver && copyMode
-          ? "border-green-400 bg-green-50 dark:bg-green-500/10"
-          : dragOver
-          ? "border-blue-400 bg-blue-50 dark:bg-blue-500/10"
-          : "border-zinc-200 dark:border-zinc-800"
-      }`}
+      className={`flex-1 min-h-[40px] flex items-center gap-2 flex-wrap px-2 py-1 border-l transition-colors ${borderClass}`}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}

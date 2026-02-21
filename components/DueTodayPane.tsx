@@ -104,6 +104,15 @@ export default function DueTodayPane({
     setCopyMode(false);
   }
 
+  let dragOverClass: string;
+  if (dragOver && copyMode) {
+    dragOverClass = "bg-green-50 dark:bg-green-500/5";
+  } else if (dragOver) {
+    dragOverClass = "bg-blue-50 dark:bg-blue-500/5";
+  } else {
+    dragOverClass = "";
+  }
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -121,13 +130,7 @@ export default function DueTodayPane({
       {/* Task list + drop zone */}
       <section
         aria-label="Due today tasks"
-        className={`flex-1 overflow-y-auto min-h-0 transition-colors ${
-          dragOver && copyMode
-            ? "bg-green-50 dark:bg-green-500/5"
-            : dragOver
-            ? "bg-blue-50 dark:bg-blue-500/5"
-            : ""
-        }`}
+        className={`flex-1 overflow-y-auto min-h-0 transition-colors ${dragOverClass}`}
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}

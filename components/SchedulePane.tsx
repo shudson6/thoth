@@ -162,6 +162,15 @@ export default function SchedulePane({
     setDragCopyMode(false);
   }
 
+  let allDayDragClass: string;
+  if (allDayDragOver && dragCopyMode) {
+    allDayDragClass = "border-green-400 bg-green-50 dark:bg-green-500/10 border-dashed";
+  } else if (allDayDragOver) {
+    allDayDragClass = "border-blue-400 bg-blue-50 dark:bg-blue-500/10 border-dashed";
+  } else {
+    allDayDragClass = "border-zinc-200 dark:border-zinc-800";
+  }
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Date navigation header */}
@@ -213,13 +222,7 @@ export default function SchedulePane({
       {/* All-day strip */}
       <section
         aria-label="All-day events"
-        className={`shrink-0 border-b px-4 py-2 min-h-[40px] flex items-center gap-2 flex-wrap transition-colors ${
-          allDayDragOver && dragCopyMode
-            ? "border-green-400 bg-green-50 dark:bg-green-500/10 border-dashed"
-            : allDayDragOver
-            ? "border-blue-400 bg-blue-50 dark:bg-blue-500/10 border-dashed"
-            : "border-zinc-200 dark:border-zinc-800"
-        }`}
+        className={`shrink-0 border-b px-4 py-2 min-h-[40px] flex items-center gap-2 flex-wrap transition-colors ${allDayDragClass}`}
         onDragOver={handleAllDayDragOver}
         onDragLeave={handleAllDayDragLeave}
         onDrop={handleAllDayDrop}
