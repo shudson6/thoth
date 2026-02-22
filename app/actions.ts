@@ -129,12 +129,7 @@ export async function setRecurrence(taskId: string, rule: string) {
     if (rows.length === 0) throw new Error(`Task ${taskId} not found`);
     const t = rows[0];
 
-    if (!t.completed) {
-      await client.query(
-        `UPDATE tasks SET recurrence_rule = $2, updated_at = now() WHERE id = $1`,
-        [taskId, rule]
-      );
-    } else {
+    if (t.completed) {
       await client.query("BEGIN");
 
       const { rows: masterRows } = await client.query(
@@ -162,6 +157,11 @@ export async function setRecurrence(taskId: string, rule: string) {
       );
 
       await client.query("COMMIT");
+    } else {
+      await client.query(
+        `UPDATE tasks SET recurrence_rule = $2, updated_at = now() WHERE id = $1`,
+        [taskId, rule]
+      );
     }
   } catch (e) {
     await client.query("ROLLBACK");

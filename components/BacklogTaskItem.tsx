@@ -29,12 +29,12 @@ export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, on
   function handleStartChange(newStart: string) {
     const oldStartMin = timeToMinutes(start);
     const newStartMin = timeToMinutes(newStart);
-    if (task.estimatedMinutes != null) {
-      setEnd(minutesToTime(Math.min(newStartMin + task.estimatedMinutes, 24 * 60 - 1)));
-    } else {
+    if (task.estimatedMinutes == null) {
       const delta = newStartMin - oldStartMin;
       const newEndMin = Math.min(Math.max(timeToMinutes(end) + delta, newStartMin), 24 * 60 - 1);
       setEnd(minutesToTime(newEndMin));
+    } else {
+      setEnd(minutesToTime(Math.min(newStartMin + task.estimatedMinutes, 24 * 60 - 1)));
     }
     setStart(newStart);
   }
