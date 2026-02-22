@@ -87,8 +87,8 @@ export default function TaskDetailModal({
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    globalThis.addEventListener("keydown", handleKey);
+    return () => globalThis.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
   function startEditing() {

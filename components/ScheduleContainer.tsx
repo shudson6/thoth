@@ -26,8 +26,8 @@ export default function ScheduleContainer({ visibleHours, children }: Props) {
       }
     }
     updateRowHeight();
-    window.addEventListener("resize", updateRowHeight);
-    return () => window.removeEventListener("resize", updateRowHeight);
+    globalThis.addEventListener("resize", updateRowHeight);
+    return () => globalThis.removeEventListener("resize", updateRowHeight);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleHours]);
 

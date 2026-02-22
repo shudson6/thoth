@@ -25,8 +25,8 @@ export default function QuickCreateModal({ date, start: initialStart, end: initi
     function handleKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
+    globalThis.addEventListener("keydown", handleKey);
+    return () => globalThis.removeEventListener("keydown", handleKey);
   }, [onClose]);
 
   function handleStartChange(newStart: string) {
