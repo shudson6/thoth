@@ -209,6 +209,14 @@ export default function DayColumn({
     onCreateTask(date, minutesToTime(startMin), minutesToTime(endMin));
   }
 
+  function handleColumnKeyDown(e: React.KeyboardEvent) {
+    if (!onCreateTask) return;
+    if (e.key !== "Enter") return;
+    const startMin = new Date().getHours() * 60;
+    const endMin = Math.min(startMin + 60, 24 * 60);
+    onCreateTask(date, minutesToTime(startMin), minutesToTime(endMin));
+  }
+
   function handlePointerDown(e: React.PointerEvent) {
     if (e.pointerType === "mouse") return;
     if ((e.target as HTMLElement).closest("[data-task-block]")) return;
@@ -237,6 +245,7 @@ export default function DayColumn({
   return (
     <section
       ref={columnRef}
+      role="application"
       aria-label="Schedule"
       className="flex-1 relative border-l border-zinc-200 dark:border-zinc-800"
       style={{ height: totalHeight }}
@@ -244,6 +253,7 @@ export default function DayColumn({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={onCreateTask ? handleColumnClick : undefined}
+      onKeyDown={onCreateTask ? handleColumnKeyDown : undefined}
       onPointerDown={onCreateTask ? handlePointerDown : undefined}
       onPointerUp={onCreateTask ? cancelLongPress : undefined}
       onPointerCancel={onCreateTask ? cancelLongPress : undefined}
