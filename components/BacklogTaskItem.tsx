@@ -102,7 +102,7 @@ export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, on
                 onChange={(e) => setIsAllDay(e.target.checked)}
                 className="rounded border-zinc-300 dark:border-zinc-600"
               />
-              All day
+              <span>All day</span>
             </label>
           </div>
           <label className="flex items-center gap-1.5 text-xs text-zinc-500 dark:text-zinc-400 cursor-pointer select-none">
@@ -112,7 +112,7 @@ export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, on
               onChange={(e) => setKeepInBacklog(e.target.checked)}
               className="rounded border-zinc-300 dark:border-zinc-600"
             />
-            Keep in backlog
+            <span>Keep in backlog</span>
             <span className="hidden md:inline text-zinc-400">(Ctrl+drag)</span>
           </label>
           {!isAllDay && (
