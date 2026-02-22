@@ -142,12 +142,10 @@ export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, on
                   } else {
                     onScheduleAllDay(task.id, date);
                   }
+                } else if (keepInBacklog) {
+                  onScheduleCopy(task.id, start, end, date);
                 } else {
-                  if (keepInBacklog) {
-                    onScheduleCopy(task.id, start, end, date);
-                  } else {
-                    onSchedule(task.id, start, end, date);
-                  }
+                  onSchedule(task.id, start, end, date);
                 }
                 setShowPicker(false);
               }}
