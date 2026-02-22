@@ -247,7 +247,8 @@ export default function DayColumn({
       ref={columnRef}
       role="application"
       aria-label="Schedule"
-      className="flex-1 relative border-l border-zinc-200 dark:border-zinc-800"
+      tabIndex={0}
+      className="flex-1 relative border-l border-zinc-200 dark:border-zinc-800 focus:outline-none"
       style={{ height: totalHeight }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
