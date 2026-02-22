@@ -77,6 +77,7 @@ function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
           : t
       );
     case "update":
+    case "updateMaster":
       return tasks.map((t) =>
         t.id === action.id ? { ...t, ...action.updates } : t
       );
@@ -121,10 +122,6 @@ function tasksReducer(tasks: Task[], action: TaskAction): Task[] {
         ),
         action.exception,
       ];
-    case "updateMaster":
-      return tasks.map((t) =>
-        t.id === action.id ? { ...t, ...action.updates } : t
-      );
     case "cancelOccurrence":
       return [
         ...tasks.filter((t) =>
