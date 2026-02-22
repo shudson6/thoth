@@ -44,16 +44,12 @@ export default function QuickCreateModal({ date, start: initialStart, end: initi
 
   return (
     <>
-      <div aria-hidden="true" className="fixed inset-0 z-40 bg-black/50" />
+      <div aria-hidden="true" className="fixed inset-0 z-40 bg-black/50" onClick={onClose} />
       <dialog
         open
         aria-modal="true"
         aria-label="Create task"
-        className="fixed inset-0 z-50 flex items-center justify-center m-0 p-0 border-0 bg-transparent w-screen h-screen max-w-none"
-        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
-      >
-      <div
-        className="relative w-full max-w-sm rounded-md bg-white dark:bg-zinc-900 shadow-lg border border-zinc-200 dark:border-zinc-700 p-6"
+        className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-50 m-0 p-6 rounded-md bg-white dark:bg-zinc-900 shadow-lg border border-zinc-200 dark:border-zinc-700 w-full max-w-sm"
       >
         <button
           onClick={onClose}
@@ -124,7 +120,6 @@ export default function QuickCreateModal({ date, start: initialStart, end: initi
             </button>
           </div>
         </div>
-      </div>
       </dialog>
     </>
   );

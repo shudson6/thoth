@@ -45,15 +45,13 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0
   const width = `calc(100% / ${numCols} - 4px)`;
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       className={`absolute rounded-md px-3 py-1 text-sm text-white shadow-sm overflow-hidden transition-opacity hover:opacity-90 ${task.completed ? "opacity-50 cursor-pointer" : "cursor-grab active:cursor-grabbing"}`}
       style={{ top, height, left, width, backgroundColor: bgColor }}
       draggable={!task.completed}
       onDragStart={task.completed ? undefined : handleDragStart}
       onClick={(e) => { e.stopPropagation(); onOpenDetail(task.id); }}
-      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.stopPropagation(); onOpenDetail(task.id); } }}
       data-task-block=""
     >
       <span className={`font-medium truncate block ${task.completed ? "line-through" : ""}`}>{task.title}</span>
@@ -70,6 +68,6 @@ export default function ScheduleTaskBlock({ task, rowHeight, groupColor, col = 0
           <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
         </svg>
       )}
-    </div>
+    </button>
   );
 }

@@ -243,7 +243,7 @@ export default function DayColumn({
   }
 
   return (
-    <section
+    <div
       ref={columnRef}
       role="application"
       aria-label="Schedule"
@@ -306,6 +306,6 @@ export default function DayColumn({
           />
         );
       })}
-    </section>
+    </div>
   );
 }
