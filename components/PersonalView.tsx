@@ -186,7 +186,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
       day: "2-digit",
     }).format(new Date());
     document.cookie = `tz=${encodeURIComponent(tz)}; path=/; max-age=31536000; SameSite=Lax`;
-    setTimezone(tz);
+    setTimezone(tz); // eslint-disable-line react-hooks/set-state-in-effect
     // Correct the date only if it still holds the server's initial value
     // (i.e. the user hasn't navigated away yet) and the local date differs
     setSelectedDate((prev) =>
@@ -608,7 +608,6 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
           <div className="hidden md:flex flex-col min-h-0 w-56 shrink-0 border-l border-zinc-200 dark:border-zinc-800">
             <DueTodayPane
               tasks={dueTodayTasks}
-              date={selectedDate}
               groups={optimisticGroups}
               groupColorMap={Object.fromEntries(optimisticGroups.map((g) => [g.id, g.color]))}
               onPlanForDate={(id) => handlePlanForDate(id, selectedDate)}

@@ -20,7 +20,6 @@ type ExceptionFields = {
 
 type Props = Readonly<{
   tasks: Task[];
-  date: string;
   groups: Group[];
   groupColorMap: Record<string, string>;
   onPlanForDate: (taskId: string) => void;
@@ -40,7 +39,6 @@ type Props = Readonly<{
 
 export default function DueTodayPane({
   tasks,
-  date,
   groups,
   groupColorMap,
   onPlanForDate,

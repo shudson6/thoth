@@ -246,8 +246,6 @@ export default function TaskDetailModal({
 
   const taskGroup = groups.find((g) => g.id === task.groupId);
   const isRecurring = !!(task.recurrenceRule || task.recurringParentId || task.isVirtualRecurrence);
-  const masterId = task.recurringParentId ?? task.id;
-
   return (
     <div
       role="presentation"

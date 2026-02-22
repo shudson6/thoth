@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Task, Group } from "@/types/task";
 import ScheduleTaskBlock from "./ScheduleTaskBlock";
 import { timeToMinutes, minutesToTime } from "@/lib/time";
@@ -202,12 +202,12 @@ export default function DayColumn({
   const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const longPressClientY = useRef(0);
 
-  const handleColumnClick = useCallback((e: React.MouseEvent) => {
+  function handleColumnClick(e: React.MouseEvent) {
     if (!onCreateTask) return;
     const startMin = getMinutesFromY(e.clientY);
     const endMin = Math.min(startMin + 60, 24 * 60);
     onCreateTask(date, minutesToTime(startMin), minutesToTime(endMin));
-  }, [onCreateTask, date, rowHeight]); // eslint-disable-line react-hooks/exhaustive-deps
+  }
 
   function handlePointerDown(e: React.PointerEvent) {
     if (e.pointerType === "mouse") return;

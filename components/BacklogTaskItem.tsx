@@ -137,9 +137,17 @@ export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, on
             <button
               onClick={() => {
                 if (isAllDay) {
-                  keepInBacklog ? onScheduleAllDayCopy(task.id, date) : onScheduleAllDay(task.id, date);
+                  if (keepInBacklog) {
+                    onScheduleAllDayCopy(task.id, date);
+                  } else {
+                    onScheduleAllDay(task.id, date);
+                  }
                 } else {
-                  keepInBacklog ? onScheduleCopy(task.id, start, end, date) : onSchedule(task.id, start, end, date);
+                  if (keepInBacklog) {
+                    onScheduleCopy(task.id, start, end, date);
+                  } else {
+                    onSchedule(task.id, start, end, date);
+                  }
                 }
                 setShowPicker(false);
               }}
