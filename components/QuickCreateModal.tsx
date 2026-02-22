@@ -43,13 +43,17 @@ export default function QuickCreateModal({ date, start: initialStart, end: initi
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
+    <>
+      <div aria-hidden="true" className="fixed inset-0 z-40 bg-black/50" />
+      <dialog
+        open
+        aria-modal="true"
+        aria-label="Create task"
+        className="fixed inset-0 z-50 flex items-center justify-center m-0 p-0 border-0 bg-transparent w-screen h-screen max-w-none"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
       <div
         className="relative w-full max-w-sm rounded-md bg-white dark:bg-zinc-900 shadow-lg border border-zinc-200 dark:border-zinc-700 p-6"
-        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}
@@ -63,8 +67,9 @@ export default function QuickCreateModal({ date, start: initialStart, end: initi
 
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Title</label>
+            <label htmlFor="qc-title" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Title</label>
             <input
+              id="qc-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -76,14 +81,15 @@ export default function QuickCreateModal({ date, start: initialStart, end: initi
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Date</label>
+            <p className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Date</p>
             <p className="text-sm text-zinc-700 dark:text-zinc-300">{formatDate(date)}</p>
           </div>
 
           <div className="flex gap-3">
             <div className="flex-1">
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Start</label>
+              <label htmlFor="qc-start" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Start</label>
               <input
+                id="qc-start"
                 type="time"
                 value={start}
                 onChange={(e) => handleStartChange(e.target.value)}
@@ -91,8 +97,9 @@ export default function QuickCreateModal({ date, start: initialStart, end: initi
               />
             </div>
             <div className="flex-1">
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">End</label>
+              <label htmlFor="qc-end" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">End</label>
               <input
+                id="qc-end"
                 type="time"
                 value={end}
                 onChange={(e) => setEnd(e.target.value)}
@@ -118,6 +125,7 @@ export default function QuickCreateModal({ date, start: initialStart, end: initi
           </div>
         </div>
       </div>
-    </div>
+      </dialog>
+    </>
   );
 }
