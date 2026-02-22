@@ -246,6 +246,25 @@ export default function TaskDetailModal({
 
   const taskGroup = groups.find((g) => g.id === task.groupId);
   const isRecurring = !!(task.recurrenceRule || task.recurringParentId || task.isVirtualRecurrence);
+
+  let scheduleDisplay: string;
+  if (task.scheduledStart && task.scheduledEnd) {
+    scheduleDisplay = `${formatTime(task.scheduledStart)} – ${formatTime(task.scheduledEnd)}`;
+  } else if (task.allDay) {
+    scheduleDisplay = "All day";
+  } else {
+    scheduleDisplay = "Due today";
+  }
+
+  let recurrenceDisplay: string;
+  if (task.recurrenceRule) {
+    recurrenceDisplay = describeRRule(task.recurrenceRule);
+  } else if (task.recurringParentId) {
+    recurrenceDisplay = "Recurring (this occurrence)";
+  } else {
+    recurrenceDisplay = "Recurring";
+  }
+
   return (
     <>
       <div aria-hidden="true" className="fixed inset-0 z-40 bg-black/50" />
@@ -286,8 +305,9 @@ export default function TaskDetailModal({
         {editing ? (
           <div className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Title</label>
+              <label htmlFor="modal-title" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Title</label>
               <input
+                id="modal-title"
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
@@ -296,8 +316,9 @@ export default function TaskDetailModal({
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Description</label>
+              <label htmlFor="modal-description" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Description</label>
               <textarea
+                id="modal-description"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 rows={3}
@@ -306,8 +327,9 @@ export default function TaskDetailModal({
             </div>
             <div className="flex gap-3">
               <div className="flex-1">
-                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Points</label>
+                <label htmlFor="modal-points" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Points</label>
                 <input
+                  id="modal-points"
                   type="number"
                   value={points}
                   onChange={(e) => setPoints(e.target.value)}
@@ -316,8 +338,9 @@ export default function TaskDetailModal({
                 />
               </div>
               <div className="flex-1">
-                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Estimate (min)</label>
+                <label htmlFor="modal-estimate" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Estimate (min)</label>
                 <input
+                  id="modal-estimate"
                   type="number"
                   value={estimate}
                   onChange={(e) => handleEstimateChange(e.target.value)}
@@ -328,8 +351,9 @@ export default function TaskDetailModal({
             </div>
             {onReschedule && task.scheduledDate && (
               <div className="space-y-2">
-                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400">Schedule</label>
+                <label htmlFor="modal-sched-date" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400">Schedule</label>
                 <input
+                  id="modal-sched-date"
                   type="date"
                   value={scheduledDate}
                   onChange={(e) => setScheduledDate(e.target.value)}
@@ -342,7 +366,7 @@ export default function TaskDetailModal({
                     onChange={(e) => setIsAllDay(e.target.checked)}
                     className="rounded border-zinc-300 dark:border-zinc-600"
                   />
-                  All day
+                  <span>All day</span>
                 </label>
                 {isAllDay && (
                   <label className="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-400 cursor-pointer select-none pl-1">
@@ -352,14 +376,15 @@ export default function TaskDetailModal({
                       onChange={(e) => setAllDayEvent(e.target.checked)}
                       className="rounded border-zinc-300 dark:border-zinc-600"
                     />
-                    All-day event
+                    <span>All-day event</span>
                     <span className="text-xs text-zinc-400 dark:text-zinc-500">(vs. due today)</span>
                   </label>
                 )}
                 <div className="flex gap-3">
                   <div className="flex-1">
-                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Start</label>
+                    <label htmlFor="modal-sched-start" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Start</label>
                     <input
+                      id="modal-sched-start"
                       type="time"
                       value={scheduledStart}
                       onChange={(e) => handleScheduledStartChange(e.target.value)}
@@ -368,8 +393,9 @@ export default function TaskDetailModal({
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">End</label>
+                    <label htmlFor="modal-sched-end" className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">End</label>
                     <input
+                      id="modal-sched-end"
                       type="time"
                       value={scheduledEnd}
                       onChange={(e) => setScheduledEnd(e.target.value)}
@@ -381,7 +407,7 @@ export default function TaskDetailModal({
               </div>
             )}
             <div>
-              <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Group</label>
+              <p className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Group</p>
               <GroupPicker
                 groups={groups}
                 selectedGroupId={groupId}
@@ -391,7 +417,7 @@ export default function TaskDetailModal({
             </div>
             {onSetRecurrence && task.scheduledDate && (
               <div>
-                <label className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Repeat</label>
+                <p className="block text-xs font-medium text-zinc-500 dark:text-zinc-400 mb-1">Repeat</p>
                 <RecurrencePicker
                   value={recurrenceRule}
                   anchorDate={task.scheduledDate}
@@ -460,11 +486,7 @@ export default function TaskDetailModal({
                 <span>{formatScheduledDate(task.scheduledDate)}</span>
                 <span>·</span>
                 <span>
-                  {task.scheduledStart && task.scheduledEnd
-                    ? `${formatTime(task.scheduledStart)} – ${formatTime(task.scheduledEnd)}`
-                    : task.allDay
-                    ? "All day"
-                    : "Due today"}
+                  {scheduleDisplay}
                 </span>
               </div>
             )}
@@ -474,11 +496,7 @@ export default function TaskDetailModal({
                   <path fillRule="evenodd" d="M15.312 11.424a5.5 5.5 0 0 1-9.201 2.466l-.312-.311h2.433a.75.75 0 0 0 0-1.5H3.989a.75.75 0 0 0-.75.75v4.242a.75.75 0 0 0 1.5 0v-2.43l.31.31a7 7 0 0 0 11.712-3.138.75.75 0 0 0-1.449-.39Zm1.23-3.723a.75.75 0 0 0 .219-.53V2.929a.75.75 0 0 0-1.5 0V5.36l-.31-.31A7 7 0 0 0 3.239 8.188a.75.75 0 1 0 1.448.389A5.5 5.5 0 0 1 13.89 6.11l.311.31h-2.432a.75.75 0 0 0 0 1.5h4.243a.75.75 0 0 0 .53-.219Z" clipRule="evenodd" />
                 </svg>
                 <span>
-                  {task.recurrenceRule
-                    ? describeRRule(task.recurrenceRule)
-                    : task.recurringParentId
-                    ? "Recurring (this occurrence)"
-                    : "Recurring"}
+                  {recurrenceDisplay}
                 </span>
               </div>
             )}
