@@ -93,15 +93,7 @@ export default function GroupPicker({ groups, selectedGroupId, onChange, onCreat
             </button>
           ))}
 
-          {!creating ? (
-            <button
-              type="button"
-              onClick={() => setCreating(true)}
-              className="w-full px-3 py-1.5 text-left text-sm text-blue-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium border-t border-zinc-100 dark:border-zinc-800 mt-1"
-            >
-              + New group
-            </button>
-          ) : (
+          {creating ? (
             <div className="px-3 py-2 border-t border-zinc-100 dark:border-zinc-800 mt-1 space-y-2">
               <input
                 autoFocus
@@ -143,6 +135,14 @@ export default function GroupPicker({ groups, selectedGroupId, onChange, onCreat
                 </button>
               </div>
             </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setCreating(true)}
+              className="w-full px-3 py-1.5 text-left text-sm text-blue-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 font-medium border-t border-zinc-100 dark:border-zinc-800 mt-1"
+            >
+              + New group
+            </button>
           )}
         </div>
       )}

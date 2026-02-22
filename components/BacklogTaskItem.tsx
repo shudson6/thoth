@@ -50,7 +50,7 @@ export default function BacklogTaskItem({ task, onSchedule, onScheduleAllDay, on
   return (
     <li className="border-b border-zinc-100 dark:border-zinc-800 last:border-b-0">
       <div
-        className={`flex items-center gap-3 px-4 py-2.5 ${!task.completed ? "cursor-grab active:cursor-grabbing" : ""}`}
+        className={`flex items-center gap-3 px-4 py-2.5 ${task.completed ? "" : "cursor-grab active:cursor-grabbing"}`}
         draggable={!task.completed}
         onDragStart={handleDragStart}
       >
