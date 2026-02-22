@@ -247,17 +247,17 @@ export default function TaskDetailModal({
   const taskGroup = groups.find((g) => g.id === task.groupId);
   const isRecurring = !!(task.recurrenceRule || task.recurringParentId || task.isVirtualRecurrence);
   return (
-    <div
-      role="presentation"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
+    <>
+      <div aria-hidden="true" className="fixed inset-0 z-40 bg-black/50" />
+      <dialog
+        open
         aria-modal="true"
         aria-labelledby="task-detail-title"
+        className="fixed inset-0 z-50 flex items-center justify-center m-0 p-0 border-0 bg-transparent w-screen h-screen max-w-none"
+        onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+      >
+      <div
         className="relative w-full max-w-md rounded-md bg-white dark:bg-zinc-900 shadow-lg border border-zinc-200 dark:border-zinc-700 p-6"
-        onClick={(e) => e.stopPropagation()}
       >
         {/* Top-right controls */}
         <div className="absolute top-4 right-4 flex items-center gap-2">
@@ -503,6 +503,7 @@ export default function TaskDetailModal({
           </div>
         )}
       </div>
-    </div>
+      </dialog>
+    </>
   );
 }
