@@ -212,6 +212,7 @@ export default function DayColumn({
   function handleColumnKeyDown(e: React.KeyboardEvent) {
     if (!onCreateTask) return;
     if (e.key !== "Enter") return;
+    e.preventDefault(); // prevent the button's click from also firing
     const startMin = new Date().getHours() * 60;
     const endMin = Math.min(startMin + 60, 24 * 60);
     onCreateTask(date, minutesToTime(startMin), minutesToTime(endMin));
@@ -245,21 +246,27 @@ export default function DayColumn({
   return (
     <div
       ref={columnRef}
-      role="application"
-      aria-label="Schedule"
-      tabIndex={0}
-      className="flex-1 relative border-l border-zinc-200 dark:border-zinc-800 focus:outline-none"
+      className="flex-1 relative border-l border-zinc-200 dark:border-zinc-800"
       style={{ height: totalHeight }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
-      onClick={onCreateTask ? handleColumnClick : undefined}
-      onKeyDown={onCreateTask ? handleColumnKeyDown : undefined}
-      onPointerDown={onCreateTask ? handlePointerDown : undefined}
-      onPointerUp={onCreateTask ? cancelLongPress : undefined}
-      onPointerCancel={onCreateTask ? cancelLongPress : undefined}
-      onPointerMove={onCreateTask ? handlePointerMove : undefined}
     >
+      {/* Click / keyboard / long-press target for task creation */}
+      {onCreateTask && (
+        <button
+          type="button"
+          aria-label="Add task"
+          className="absolute inset-0 focus:outline-none"
+          onClick={handleColumnClick}
+          onKeyDown={handleColumnKeyDown}
+          onPointerDown={handlePointerDown}
+          onPointerUp={cancelLongPress}
+          onPointerCancel={cancelLongPress}
+          onPointerMove={handlePointerMove}
+        />
+      )}
+
       {/* Hour grid lines */}
       {HOURS.map((h) => (
         <div
