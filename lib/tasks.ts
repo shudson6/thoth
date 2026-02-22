@@ -32,6 +32,14 @@ export async function getTasks(): Promise<Task[]> {
   });
 }
 
+export async function getSetting(key: string): Promise<string | null> {
+  const { rows } = await pool.query(
+    `SELECT value FROM settings WHERE key = $1`,
+    [key]
+  );
+  return rows[0]?.value ?? null;
+}
+
 export async function getGroups(): Promise<Group[]> {
   const { rows } = await pool.query(
     `SELECT id, name, color FROM groups ORDER BY position, name`

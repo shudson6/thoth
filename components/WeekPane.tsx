@@ -28,6 +28,7 @@ type Props = Readonly<{
   groups: Group[];
   visibleHours: number;
   timezone: string;
+  weekStart: number;
   selectedDate: string;
   onChangeDate: (date: string) => void;
   onUpdateTask: (
@@ -64,13 +65,13 @@ function shiftDate(dateStr: string, days: number): string {
   return localDateStr(d);
 }
 
-function weekDates(anchor: string): string[] {
+function weekDates(anchor: string, weekStart: number): string[] {
   const d = new Date(anchor + "T00:00:00");
-  const monday = new Date(d);
-  monday.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const start = new Date(d);
+  start.setDate(d.getDate() - ((d.getDay() - weekStart + 7) % 7));
   return Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(monday);
-    day.setDate(monday.getDate() + i);
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
     return localDateStr(day);
   });
 }
@@ -94,6 +95,7 @@ export default function WeekPane({
   groups,
   visibleHours,
   timezone,
+  weekStart,
   selectedDate,
   onChangeDate,
   onUpdateTask,
@@ -121,7 +123,7 @@ export default function WeekPane({
     return "text-zinc-600 dark:text-zinc-300";
   }
 
-  const dates = useMemo(() => weekDates(selectedDate), [selectedDate]);
+  const dates = useMemo(() => weekDates(selectedDate, weekStart), [selectedDate, weekStart]);
 
   const expandedByDate = useMemo(
     () => Object.fromEntries(dates.map((d) => [d, expandForDate(tasks, d)])),

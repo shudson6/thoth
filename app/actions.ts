@@ -394,3 +394,11 @@ export async function deleteGroup(id: string, deleteTasks: boolean) {
   await pool.query(`DELETE FROM groups WHERE id = $1`, [id]);
   revalidatePath("/");
 }
+
+export async function setSetting(key: string, value: string) {
+  await pool.query(
+    `INSERT INTO settings (key, value) VALUES ($1, $2)
+     ON CONFLICT (key) DO UPDATE SET value = $2`,
+    [key, value]
+  );
+}

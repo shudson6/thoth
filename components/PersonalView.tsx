@@ -7,8 +7,10 @@ import WeekPane from "./WeekPane";
 import BacklogPane from "./BacklogPane";
 import DueTodayPane from "./DueTodayPane";
 import QuickCreateModal from "./QuickCreateModal";
+import SettingsMenu from "./SettingsMenu";
 import { expandForDate } from "@/lib/recurrence";
 import {
+  setSetting as setSettingAction,
   addTask as addTaskAction,
   toggleTask as toggleTaskAction,
   scheduleTask as scheduleTaskAction,
@@ -164,9 +166,10 @@ type Props = Readonly<{
   initialGroups: Group[];
   initialDate: string;
   initialTimezone: string;
+  initialWeekStart: number;
 }>;
 
-export default function PersonalView({ initialTasks, initialGroups, initialDate, initialTimezone }: Props) {
+export default function PersonalView({ initialTasks, initialGroups, initialDate, initialTimezone, initialWeekStart }: Props) {
   const [optimisticTasks, dispatchTasks] = useOptimistic(initialTasks, tasksReducer);
   const [optimisticGroups, dispatchGroups] = useOptimistic(initialGroups, groupsReducer);
   const [, startTransition] = useTransition();
@@ -449,6 +452,12 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
   const [activeTab, setActiveTab] = useState<"schedule" | "backlog">("schedule");
   const [viewMode, setViewMode] = useState<"day" | "week">("day");
   const [visibleHours, setVisibleHours] = useState(16);
+  const [weekStart, setWeekStart] = useState(initialWeekStart);
+
+  function handleWeekStartChange(day: number) {
+    setWeekStart(day);
+    setSettingAction("week_start", String(day));
+  }
   const [quickCreate, setQuickCreate] = useState<{ date: string; start: string; end: string } | null>(null);
 
   function handleCreateTask(date: string, start: string, end: string) {
@@ -544,6 +553,10 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
             >
               +
             </button>
+            <SettingsMenu
+              weekStart={weekStart}
+              onWeekStartChange={handleWeekStartChange}
+            />
           </div>
         </div>
 
@@ -578,6 +591,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
             groups={optimisticGroups}
             visibleHours={visibleHours}
             timezone={timezone}
+            weekStart={weekStart}
             selectedDate={selectedDate}
             onChangeDate={setSelectedDate}
             onUpdateTask={updateTask}
