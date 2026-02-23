@@ -245,6 +245,7 @@ export default function DayColumn({
 
   return (
     <div
+      role="none"
       ref={columnRef}
       className="flex-1 relative border-l border-zinc-200 dark:border-zinc-800"
       style={{ height: totalHeight }}
