@@ -378,7 +378,7 @@ export default function PersonalView({ initialTasks, initialGroups, initialDate,
 
   // --- Copy callbacks ---
 
-  function handleCopyTask(sourceId: string, date: string, start: string, end: string) {
+  function handleCopyTask(sourceId: string, start: string, end: string, date: string) {
     const source = optimisticTasks.find((t) => t.id === sourceId);
     if (!source) return;
     const tempId = Math.random().toString(36).slice(2);
